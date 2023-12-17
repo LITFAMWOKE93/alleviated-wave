@@ -33,7 +33,7 @@ const (
 )
 
 // initGlfw initializes glfw and returns a Window to use.
-func initGlfw(string windowName) *glfw.Window {
+func InitGlfw(windowTitle string) *glfw.Window {
 	if err := glfw.Init(); err != nil {
 		panic(err)
 	}
@@ -44,9 +44,7 @@ func initGlfw(string windowName) *glfw.Window {
 	glfw.WindowHint(glfw.OpenGLProfile, glfw.OpenGLCoreProfile)
 	glfw.WindowHint(glfw.OpenGLForwardCompatible, glfw.True)
 
-	wN := windowName
-
-	window, err := glfw.CreateWindow(WIDTH, HEIGHT, wN, nil, nil)
+	window, err := glfw.CreateWindow(WIDTH, HEIGHT, windowTitle, nil, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -56,7 +54,7 @@ func initGlfw(string windowName) *glfw.Window {
 }
 
 // initOpenGL initializes OpenGL and return an init program.
-func initOpenGL() uint32 {
+func InitOpenGL() uint32 {
 
 	if err := gl.Init(); err != nil {
 		panic(err)
@@ -107,7 +105,7 @@ func makeVertexArrayObject(points []float32) uint32 {
 }
 
 // func draw redraws the window everything in the frame
-func draw(prog uint32, window *glfw.Window) error {
+func Draw(prog uint32, window *glfw.Window) error {
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 	gl.UseProgram(prog)
 

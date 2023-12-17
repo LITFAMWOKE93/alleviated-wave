@@ -1,6 +1,7 @@
 package main
 
 import (
+	"LITFAMWOKE93/alleviated-wave/common"
 	"runtime"
 	"time"
 
@@ -14,8 +15,7 @@ var (
 )
 
 const (
-	WIDTH  = 800
-	HEIGHT = 600
+	FPS = 60
 
 	// OpenGL needs the termination character \x00 to compile
 
@@ -39,28 +39,24 @@ const (
 	` + "\x00"
 )
 
+var windowTitle string = "Window Title"
+
 func main() {
 	runtime.LockOSThread()
 
-	window := initGlfw("Window Title")
+	window := common.InitGlfw("Window Title")
 
 	defer glfw.Terminate()
-	program := initOpenGL()
+	program := common.InitOpenGL()
 
 	// Make the object
-
+	t := time.Now()
 	for !window.ShouldClose() {
 
-		t := time.Now()
-		for x := range cells {
-			for _, c := range cells[x] {
-				c.checkState(cells)
-			}
-		}
-		if err := draw(program, window, cells); err != nil {
+		if err := common.Draw(program, window); err != nil {
 			panic(err)
 		}
-
+		// create an FPS
 		time.Sleep(time.Second/time.Duration(FPS) - time.Since(t))
 	}
 
