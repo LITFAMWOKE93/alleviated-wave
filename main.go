@@ -16,30 +16,7 @@ var (
 
 const (
 	FPS = 60
-
-	// OpenGL needs the termination character \x00 to compile
-
-	// Define the position of the shape, distance of viewport
-	vertexShaderSource = `
-		#version 400
-
-		in vec3 vp;
-		void main() {
-			gl_Position = vec4(vp, 1.0);
-		}
-	` + "\x00"
-	// Define the color of the shape
-	fragmentShaderSource = `
-		#version 400
-
-		out vec4 frag_colour;
-		void main() {
-  			frag_colour = vec4(1, 1, 1, 0.3);
-		}
-	` + "\x00"
 )
-
-var windowTitle string = "Window Title"
 
 func main() {
 	runtime.LockOSThread()
