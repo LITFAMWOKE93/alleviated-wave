@@ -1,39 +1,43 @@
 package main
 
 import (
+	"LITFAMWOKE93/alleviated-wave/util"
+	"log"
 	"runtime"
-	"time"
 
-	"github.com/go-gl/glfw/v3.3/glfw"
+	"github.com/go-gl/gl/v2.1/gl"
 )
 
 var (
-// a slice of float32, the datatype that is always fed to openGL
-// 0, 0, 0 is the center axis of the view
-
+	// a slice of float32, the datatype that is always fed to openGL
+	// 0, 0, 0 is the center axis of the view
+	vertices = []float32{
+		1.0, -1.0,
+		0.0, 1.0,
+		1.0, -1.0,
+	}
 )
 
 const (
 	FPS = 60
 )
 
+func init() {
+
+}
+
 func main() {
 	runtime.LockOSThread()
 
-	window := common.InitGlfw("Window Title")
-
-	defer glfw.Terminate()
-	program := common.InitOpenGL()
-
-	// Make the object
-	t := time.Now()
-	for !window.ShouldClose() {
-
-		if err := common.Draw(program, window); err != nil {
-			panic(err)
-		}
-		// create an FPS
-		time.Sleep(time.Second/time.Duration(FPS) - time.Since(t))
+	GL, err := util.NewGL(util.WIDTH, util.HEIGHT, "Test Window", vertices)
+	if err != nil {
+		log.Fatal(err)
 	}
+	defer GL.Terminate()
+
+	// Set clear to white
+	gl.ClearColor(1.0, 1.0, 1.0, 1.0)
+	// Run main render loop
+	GL.Run(GL.RenderTriangle)
 
 }
