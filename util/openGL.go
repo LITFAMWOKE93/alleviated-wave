@@ -1,10 +1,11 @@
-package common
+package util
 
 import (
 	"fmt"
 	"log"
 	"strings"
 
+	// The go bindings and glue library for openGL
 	"github.com/go-gl/gl/v2.1/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
 )
@@ -12,7 +13,7 @@ import (
 const (
 	WIDTH  = 1280
 	HEIGHT = 800
-
+	// Define the position of the shape
 	vertexShaderSource = `
 		#version 400
 
@@ -27,7 +28,7 @@ const (
 
 		out vec4 frag_colour;
 		void main() {
-  			frag_colour = vec4(1, 1, 1, 0.3);
+  			frag_colour = vec4(1, 1, 1, 1);
 		}
 	` + "\x00"
 )
