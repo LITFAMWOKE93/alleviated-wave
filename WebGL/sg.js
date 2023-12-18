@@ -53,7 +53,7 @@ function init()
         render();
     };
 
-
+    // Render is called at the end of initialization 
     render();
 };
 
