@@ -86,6 +86,7 @@ func init() {
 	for _, pos := range positions {
 		points = append(points, pos.X, pos.Y, pos.Z)
 	}
+	fmt.Println("Points: ", points)
 
 }
 
@@ -93,7 +94,7 @@ func main() {
 	runtime.LockOSThread()
 
 	//Create GL instance
-	GL, err := util.NewGL(800, 600, "Sierpinski Gastet", points)
+	GL, err := util.NewGL(1280, 800, "Sierpinski Gastet", points)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -104,11 +105,7 @@ func main() {
 	gl.Enable(gl.BLEND)
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 
-	if GL.VAOarray != nil {
-		GL.Run(GL.RenderSierpinksiGasket)
-	} else {
-		fmt.Println("Array storage is empty.")
-	}
+	GL.Run(GL.RenderSierpinksiGasket)
 
 	if err := gl.GetError(); err != 0 {
 		log.Printf("openGL error: %v\n", err)
