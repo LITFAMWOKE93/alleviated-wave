@@ -14,7 +14,7 @@ import (
 const (
 	width  = 800
 	height = 600
-	FPS    = 10
+	FPS    = 60
 )
 
 var (
@@ -72,6 +72,8 @@ func main() {
 	}
 	window.MakeContextCurrent()
 
+	window.SetKeyCallback(keyCallback)
+
 	if err := gl.Init(); err != nil {
 		fmt.Println("gl.Init() failed:", err)
 		return
@@ -95,26 +97,26 @@ func main() {
 	}
 	gl.UseProgram(program)
 	// TODO: turn this into a draw function
+
 	t := time.Now()
 	for !window.ShouldClose() {
+		// Call ClearColor before color
+		gl.ClearColor(1.0, 1.0, 1.0, 1.0)
 		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+
 		gl.UseProgram(program)
 		gl.BindVertexArray(VAO)
 
 		// Render call
-		renderGasket(vertices[0], vertices[1], vertices[2], 6)
 
 		// The main loop handles the actual draw calls and parsing of the buffer data into the
 		// the correct format for reading into buffer
-		gl.BindBuffer(gl.ARRAY_BUFFER, VBO)
-		gl.BufferData(gl.ARRAY_BUFFER, 4*len(float32vertices), gl.Ptr(float32vertices), gl.STATIC_DRAW)
-		gl.DrawArrays(gl.TRIANGLES, 0, int32(len(float32vertices)/3))
-		gl.BindBuffer(gl.ARRAY_BUFFER, 0)
+
 		for errCode := gl.GetError(); errCode != gl.NO_ERROR; errCode = gl.GetError() {
 			fmt.Println("OpenGL error: ", errCode)
 		}
-		glfw.PollEvents()
 		float32vertices = nil
+		glfw.PollEvents()
 		window.SwapBuffers()
 		time.Sleep(time.Second/time.Duration(FPS) - time.Since(t))
 		t = time.Now()
@@ -221,6 +223,11 @@ func renderGasket(v0, v1, v2 mgl32.Vec3, depth int) {
 	renderGasket(mid01, v1, mid12, depth-1)
 	renderGasket(mid20, mid12, v2, depth-1)
 
+	gl.BindBuffer(gl.ARRAY_BUFFER, VBO)
+	gl.BufferData(gl.ARRAY_BUFFER, 4*len(float32vertices), gl.Ptr(float32vertices), gl.STATIC_DRAW)
+	gl.DrawArrays(gl.TRIANGLES, 0, int32(len(float32vertices)/3))
+	gl.BindBuffer(gl.ARRAY_BUFFER, 0)
+
 }
 
 func pushTriangle(vertices []float32, v0, v1, v2 mgl32.Vec3) []float32 {
@@ -233,4 +240,38 @@ func makeVbo(vertices []float32) uint32 {
 	gl.BufferData(gl.ARRAY_BUFFER, 4*len(vertices), gl.Ptr(vertices), gl.STATIC_DRAW)
 	gl.BindBuffer(gl.ARRAY_BUFFER, 0)
 	return vbo
+}
+
+func keyCallback(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
+	// Check if the key is pressed and not released
+
+	if action == glfw.Press || action == glfw.Repeat {
+		switch key {
+		case glfw.Key1:
+			// Render when '1' key is pressed
+			renderGasket(vertices[0], vertices[1], vertices[2], 1)
+			fmt.Println("Key 1 pressed")
+		case glfw.Key2:
+			// Render when '1' key is pressed
+			renderGasket(vertices[0], vertices[1], vertices[2], 2)
+			fmt.Println("Key 2 pressed")
+		case glfw.Key3:
+			// Render when '1' key is pressed
+			renderGasket(vertices[0], vertices[1], vertices[2], 3)
+			fmt.Println("Key 3 pressed")
+		case glfw.Key4:
+			// Render when '1' key is pressed
+			renderGasket(vertices[0], vertices[1], vertices[2], 4)
+			fmt.Println("Key 4 pressed")
+		case glfw.Key5:
+			// Render when '1' key is pressed
+			renderGasket(vertices[0], vertices[1], vertices[2], 5)
+			fmt.Println("Key 5 pressed")
+		case glfw.Key6:
+			// Render when '1' key is pressed
+			renderGasket(vertices[0], vertices[1], vertices[2], 6)
+			fmt.Println("Key 6 pressed")
+		}
+
+	}
 }
