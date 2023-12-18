@@ -108,6 +108,7 @@ func main() {
 		gl.BindVertexArray(VAO)
 
 		// Render call
+		renderGasket(vertices[0], vertices[1], vertices[2], 6)
 
 		// The main loop handles the actual draw calls and parsing of the buffer data into the
 		// the correct format for reading into buffer
