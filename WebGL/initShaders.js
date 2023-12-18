@@ -3,7 +3,8 @@
 //
 
 function initShaders( gl, vertexShaderId, fragmentShaderId )
-{
+{   
+    // Storage variables for shaders
     var vertShdr;
     var fragShdr;
 
@@ -13,6 +14,7 @@ function initShaders( gl, vertexShaderId, fragmentShaderId )
         return -1;
     }
     else {
+        // Create shader if value found
         vertShdr = gl.createShader( gl.VERTEX_SHADER );
         vertElem.textContent = "#version 300 es" + vertElem.textContent;
         gl.shaderSource( vertShdr, vertElem.textContent.replace(/^\s+|\s+$/g, '' ));
@@ -42,12 +44,12 @@ function initShaders( gl, vertexShaderId, fragmentShaderId )
             return -1;
         }
     }
-
+    // Create shader program and return
     var program = gl.createProgram();
     gl.attachShader( program, vertShdr );
     gl.attachShader( program, fragShdr );
     gl.linkProgram( program );
-
+   // Check link status
     if ( !gl.getProgramParameter(program, gl.LINK_STATUS) ) {
         var msg = "Shader program failed to link.  The error log is:"
             + "<pre>" + gl.getProgramInfoLog( program ) + "</pre>";

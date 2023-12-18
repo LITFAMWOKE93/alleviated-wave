@@ -14,6 +14,7 @@ const (
 	HEIGHT = 800
 	// Termination characters are required for parsing the C source code
 	// Define the position of the shape
+	// Storage variables for shader sources
 	vertexShaderSource = `
 		#version 400 core
 
@@ -87,7 +88,7 @@ func InitOpenGL() uint32 {
 
 	version := gl.GoStr(gl.GetString(gl.VERSION))
 	log.Println("OpenGL version", version)
-
+	// Create shader if value found
 	vShader, err := compileShader(vertexShaderSource, gl.VERTEX_SHADER)
 	if err != nil {
 		panic(err)
@@ -97,7 +98,7 @@ func InitOpenGL() uint32 {
 	if err != nil {
 		panic(err)
 	}
-
+	// Create shader program and return
 	prog := gl.CreateProgram()
 	// Attaching the shaders to the shader program
 	gl.AttachShader(prog, vShader)
@@ -105,6 +106,20 @@ func InitOpenGL() uint32 {
 
 	// Linking program to the GL context
 	gl.LinkProgram(prog)
+
+	var linkStatus int32
+	gl.GetProgramiv(prog, gl.LINK_STATUS, &linkStatus)
+	// check link status
+	if linkStatus == gl.FALSE {
+		var logLength int32
+		gl.GetProgramiv(prog, gl.INFO_LOG_LENGTH, &logLength)
+
+		log := strings.Repeat("\x00", int(logLength+1))
+		gl.GetProgramInfoLog(prog, logLength, nil, gl.Str(log))
+
+		fmt.Printf("Program link error: %v\n", log)
+	}
+
 	return prog
 }
 
