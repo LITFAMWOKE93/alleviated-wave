@@ -262,6 +262,9 @@ func renderGasket(v0, v1, v2 mgl32.Vec3, depth int) {
 
 	// The draw call using triangle primitives
 	gl.DrawArrays(gl.TRIANGLES, 0, int32(len(float32vertices)/3))
+	//gl.DrawArrays(gl.LINES, 0, int32(len(float32vertices)/3))
+	// Using the POINTS primitive will only render the dot location of each vertice instead of connecting them like the triangle primitive
+	// gl.DrawArrays(gl.POINTS, 0, int32(len(float32vertices)/3))
 	gl.BindBuffer(gl.ARRAY_BUFFER, 0)
 
 }
@@ -275,6 +278,7 @@ func makeVbo(vertices []float32) uint32 {
 	var vbo uint32
 	gl.GenBuffers(1, &vbo)
 	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
+	// 32 bits 4 bytes
 	gl.BufferData(gl.ARRAY_BUFFER, 4*len(vertices), gl.Ptr(vertices), gl.STATIC_DRAW)
 	gl.BindBuffer(gl.ARRAY_BUFFER, 0)
 	return vbo
