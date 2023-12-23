@@ -52,13 +52,11 @@ func NewWindowContext(width, height int, windowTitle string) *glfw.Window {
 
 }
 
-func NewProgram(vertexShaderSource, fragmentShaderSource string) uint32 {
-	if err := gl.Init(); err != nil {
-		fmt.Println("gl.Init() failed:", err)
-		return 0
-	}
+func (glm *GLManager) NewProgram() uint32 {
 
-	program, err := newProgram(vertexShaderSource, fragmentShaderSource)
+	fmt.Println("OpenGL Version:", gl.GoStr(gl.GetString(gl.VERSION)))
+
+	program, err := newProgram(glm.vS, glm.fS)
 	if err != nil {
 		fmt.Println("Shader program creation failed:", err)
 		return 0
@@ -68,19 +66,22 @@ func NewProgram(vertexShaderSource, fragmentShaderSource string) uint32 {
 
 }
 
-func NewGLManager(width, height int, windowTitle string) GLManager {
+//func NewGLManager(width, height int, windowTitle string) GLManager {
 
-	result := GLManager{
-		window: NewWindowContext(width, height, windowTitle),
-		//TODO: Make setters and getters for uninitilized values
-	}
+//result := GLManager{
+//	window: NewWindowContext(width, height, windowTitle),
+//TODO: Make setters and getters for uninitilized values
+//}
 
-	return result
-}
+///	return result
+//}
 
 func (glm *GLManager) BindProgram() {
 	if glm.Program() != 0 {
 		gl.UseProgram(glm.Program())
+		fmt.Println("BindProgram called")
+	} else {
+		fmt.Println("Program value is 0")
 	}
 }
 
@@ -104,6 +105,10 @@ func (glm *GLManager) Vertices() []mgl32.Vec3 {
 	return glm.vertices
 }
 
+func (glm *GLManager) Float32Vertices() []float32 {
+	return glm.float32vertices
+}
+
 func (glm *GLManager) FragmentShaderSource() string {
 	return glm.fS
 }
@@ -112,7 +117,7 @@ func (glm *GLManager) VertexShaderSource() string {
 	return glm.vS
 }
 
-func (glm *GLManager) SetShaderSrouce(shaderSource, shaderType string) {
+func (glm *GLManager) SetShaderSource(shaderSource, shaderType string) {
 
 	switch shaderType {
 	case "vertex":
@@ -140,6 +145,10 @@ func (glm *GLManager) SetFloat32Vertices() {
 
 }
 
+func (glm *GLManager) SetProgram() {
+	glm.program = glm.NewProgram()
+}
+
 func (glm *GLManager) ClearFloat32Vertices() {
 	glm.float32vertices = nil
 }
@@ -149,8 +158,7 @@ func (glm *GLManager) BindVAO() {
 }
 
 func (glm *GLManager) BindVBO() {
-	float32array := glm.ConvertVec3ToFloat32()
-	glm.vbo = makeVbo(float32array)
+	glm.vbo = makeVbo(glm.float32vertices)
 }
 
 func (glm *GLManager) ConvertVec3ToFloat32() []float32 {
@@ -167,17 +175,18 @@ func (glm *GLManager) Render() {
 
 func newProgram(vertexShaderSource, fragmentShaderSource string) (uint32, error) {
 
-	fmt.Println("Vertex Shader Source:\n", vertexShaderSource)
-	fmt.Println("Fragment Shader Source:\n", fragmentShaderSource)
-
 	// Compile the shaders from the given source, turning it into a uint32 value
+
 	vertexShader, err := compileShader(vertexShaderSource, gl.VERTEX_SHADER)
 	if err != nil {
+		fmt.Println("VertexShaderError")
 		return 0, err
+
 	}
 
 	fragmentShader, err := compileShader(fragmentShaderSource, gl.FRAGMENT_SHADER)
 	if err != nil {
+		fmt.Println("FragmentShaderError")
 		return 0, err
 	}
 
@@ -227,6 +236,7 @@ func compileShader(source string, shaderType uint32) (uint32, error) {
 }
 
 func makeVao(vbo uint32) uint32 {
+	fmt.Println("makeVao called")
 	// Vertex array is generated and bound, attributes are set up so we know how many to read at a time and what data type will be read
 
 	var vao uint32
@@ -243,6 +253,7 @@ func makeVao(vbo uint32) uint32 {
 }
 
 func makeVbo(vertices []float32) uint32 {
+	fmt.Println("Make vbo called")
 	// The first binding of the buffer when called at initialization
 	var vbo uint32
 	gl.GenBuffers(1, &vbo)

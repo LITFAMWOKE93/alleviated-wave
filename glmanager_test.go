@@ -11,15 +11,15 @@ func TestGLManager_SetShaderSource(t *testing.T) {
 	manager := GLManager{}
 
 	// Test setting vertex shader source
-	manager.SetShaderSrouce("vertex_shader_code", "vertex")
+	manager.SetShaderSource("vertex_shader_code", "vertex")
 	assert.Equal(t, "vertex_shader_code", manager.VertexShaderSource())
 
 	// Test setting fragment shader source
-	manager.SetShaderSrouce("fragment_shader_code", "fragment")
+	manager.SetShaderSource("fragment_shader_code", "fragment")
 	assert.Equal(t, "fragment_shader_code", manager.FragmentShaderSource())
 
 	// Test setting an unsupported shader type
-	manager.SetShaderSrouce("unsupported_shader_code", "geometry")
+	manager.SetShaderSource("unsupported_shader_code", "geometry")
 	assert.Equal(t, "fragment_shader_code", manager.FragmentShaderSource())
 	assert.Equal(t, "vertex_shader_code", manager.VertexShaderSource())
 }
