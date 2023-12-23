@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
@@ -18,6 +19,7 @@ type GLManager struct {
 	float32vertices []float32
 	fS              string
 	vS              string
+	renderCall      func()
 }
 
 func NewWindowContext(width, height int, windowTitle string) *glfw.Window {
@@ -155,6 +157,14 @@ func (glm *GLManager) ConvertVec3ToFloat32() []float32 {
 	return vec3ToFloat32(glm.vertices)
 }
 
+func (glm *GLManager) Render() {
+	if glm.renderCall != nil {
+		glm.renderCall()
+	} else {
+		fmt.Println("Render call function is nil")
+	}
+}
+
 func newProgram(vertexShaderSource, fragmentShaderSource string) (uint32, error) {
 
 	fmt.Println("Vertex Shader Source:\n", vertexShaderSource)
@@ -252,4 +262,26 @@ func vec3ToFloat32(vec3Array []mgl32.Vec3) []float32 {
 	}
 
 	return float32Array
+}
+
+func (glm *GLManager) RunLoop(fps int) {
+	t := time.Now()
+	for !glm.Window().ShouldClose() {
+		gl.ClearColor(1.0, 1.0, 1.0, 1.0)
+		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+
+		//Render call
+		glm.Render()
+
+		//Check for errors after each call
+		for errCode := gl.GetError(); errCode != gl.NO_ERROR; errCode = gl.GetError() {
+			fmt.Println("OpenGL error: ", errCode)
+		}
+
+		glfw.PollEvents()
+		glm.Window().SwapBuffers()
+		time.Sleep(time.Second/time.Duration(fps) - time.Since(t))
+		t = time.Now()
+
+	}
 }
