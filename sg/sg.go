@@ -1,3 +1,4 @@
+// Switch package to main to run
 package sg
 
 import (
