@@ -10,13 +10,18 @@ import (
 )
 
 var (
-	vertices = []mgl32.Vec3{
-		{0.0, 1.0, 0.0},
-		{-1.0, -1.0, 0.0},
-		{1.0, -1.0, 0.0},
+	cubeVertices = []mgl32.Vec3{
+		{-0.5, -0.5, -0.5},
+		{0.5, -0.5, -0.5},
+		{0.5, 0.5, -0.5},
+		{-0.5, 0.5, -0.5},
+		{-0.5, -0.5, 0.5},
+		{0.5, -0.5, 0.5},
+		{0.5, 0.5, 0.5},
+		{-0.5, 0.5, 0.5},
 	}
 
-	indices = []uint32{
+	cubeIndices = []uint32{
 		0, 1, 2, 2, 3, 0, // Front face
 		4, 5, 6, 6, 7, 4, // Back face
 		0, 3, 7, 7, 4, 0, // Left face
@@ -50,6 +55,11 @@ func main() {
 
 	window.MakeContextCurrent()
 
+	if err := gl.Init(); err != nil {
+		fmt.Println("gl.Init() failed:", err)
+
+	}
+
 	glm := GLManager{
 		window: window,
 		vS: `
@@ -68,11 +78,6 @@ func main() {
 			` + "\x00",
 	}
 
-	if err := gl.Init(); err != nil {
-		fmt.Println("gl.Init() failed:", err)
-
-	}
-
 	// Set shader sources
 
 	fmt.Println(glm.FragmentShaderSource())
@@ -83,7 +88,7 @@ func main() {
 	glm.SetProgram()
 	glm.BindProgram()
 
-	glm.SetVertices(vertices)
+	glm.SetVertices(cubeVertices)
 	fmt.Println("Instance vec3 slice:", glm.Vertices())
 
 	glm.SetFloat32Vertices()
@@ -100,10 +105,12 @@ func main() {
 	fmt.Println("Instance VAO: ", glm.VAO())
 
 	glm.renderCall = func() {
-		gl.DrawArrays(gl.POINTS, 0, int32(len(glm.float32vertices)/3))
+
+		gl.DrawElementsWithOffset(gl.TRIANGLES, int32(len(cubeIndices)), gl.UNSIGNED_INT, uintptr(cubeIndices[0]))
+
 		fmt.Println("Render call")
-		fmt.Println("VAO", glm.VAO())
-		fmt.Println("VBO", glm.VBO())
+		//fmt.Println("VAO", glm.VAO())
+		//fmt.Println("VBO", glm.VBO())
 
 	}
 
