@@ -72,7 +72,7 @@ func TestGLManager_BindVAO(t *testing.T) {
 
 	// Test binding VAO with a non-zero VBO value
 	manager.Vbo = 456
-	manager.BindVAO()
+	manager.BindVAOs()
 	// Assert that the VAO is created and bound (not checking OpenGL state in this example)
 }
 
@@ -80,7 +80,7 @@ func TestGLManager_BindVBO(t *testing.T) {
 	manager := GLManager{}
 
 	// Test binding VBO
-	manager.BindVBO()
+	manager.BindVBOs()
 	// Assert that the VBO is created and bound (not checking OpenGL state in this example)
 }
 

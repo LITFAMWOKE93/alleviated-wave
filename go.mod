@@ -1,4 +1,4 @@
-module LITFAMWOKE93/alleviated-wave
+module github.com/LITFAMWOKE93/alleviated-wave
 
 go 1.21.5
 
