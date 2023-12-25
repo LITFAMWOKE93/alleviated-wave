@@ -1,4 +1,4 @@
-package main
+package graphics_manager
 
 import (
 	"testing"
@@ -62,7 +62,7 @@ func TestGLManager_BindProgram(t *testing.T) {
 	manager := GLManager{}
 
 	// Test binding program with a non-zero program value
-	manager.program = 123
+	manager.Program = 123
 	manager.BindProgram()
 	// Assert that the program is in use (not checking OpenGL state in this example)
 }
@@ -71,7 +71,7 @@ func TestGLManager_BindVAO(t *testing.T) {
 	manager := GLManager{}
 
 	// Test binding VAO with a non-zero VBO value
-	manager.vbo = 456
+	manager.Vbo = 456
 	manager.BindVAO()
 	// Assert that the VAO is created and bound (not checking OpenGL state in this example)
 }

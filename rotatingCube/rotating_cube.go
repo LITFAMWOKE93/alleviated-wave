@@ -11,31 +11,18 @@ import (
 )
 
 var (
-	cubeVertices = []mgl32.Vec3{
-		{-0.5, -0.5, -0.5},
-		{0.5, -0.5, -0.5},
-		{0.5, 0.5, -0.5},
-		{-0.5, 0.5, -0.5},
-		{-0.5, -0.5, 0.5},
-		{0.5, -0.5, 0.5},
-		{0.5, 0.5, 0.5},
-		{-0.5, 0.5, 0.5},
+	var2DCube = []mgl32.Vec3{
+		{0.0, 1.0, 0.0},
+		{1.0, 0.0, 0.0},
+		{-1.0, 0.0, 0.0},
+		{0.0, -1.0, 0.0},
 	}
 
-	cubeIndices = []uint32{
-		0, 1, 2, 2, 3, 0, // Front face
-		4, 5, 6, 6, 7, 4, // Back face
-		0, 3, 7, 7, 4, 0, // Left face
-		1, 2, 6, 6, 5, 1, // Right face
-		3, 2, 6, 6, 7, 3, // Top face
-		0, 1, 5, 5, 4, 0, // Bottom face
-	}
+	theta = 0.0
 )
 
 func main() {
 	runtime.LockOSThread()
-
-	//TODO: Create a GL struct that handles the gl library through composition
 
 	if err := glfw.Init(); err != nil {
 		fmt.Println("glfw.Init() failed:", err)
@@ -61,13 +48,24 @@ func main() {
 
 	}
 
+	// We need to link a variable in Go to the shader value uTheta
+
 	glm := graphics_manager.GLManager{
 		Window: window,
 		VS: `
 		#version 410
-		in vec3 vp;
+
+		in vec4 aPosition;
+		uniform float uTheta;
+
+
+
 		void main() {
-			gl_Position = vec4(vp, 1.0);
+    		mat2 rotationMatrix = mat2(cos(uTheta), -sin(uTheta), sin(uTheta), cos(uTheta));
+    
+    		vec2 rotatedPosition = rotationMatrix * aPosition.xy;
+
+    		gl_Position = vec4(rotatedPosition, 0.0, 1.0);
 		}
 			` + "\x00",
 		FS: `
@@ -87,9 +85,16 @@ func main() {
 	// Once the shader sources are configured we can create a program
 
 	glm.SetProgram()
+
+	// Maybe here we send attribute data
+	shaderLocName := gl.Str("uTheta" + "\x00")
+	// Go strings need to be converted into null-terminated C strings.
+	thetaLoc := gl.GetUniformLocation(glm.GetProgram(), shaderLocName)
+
+	// You can send floats, scalars, vectors, matrices to uniform
 	glm.BindProgram()
 
-	glm.SetVertices(cubeVertices)
+	glm.SetVertices(var2DCube)
 	fmt.Println("Instance vec3 slice:", glm.Vertices())
 
 	glm.SetFloat32Vertices()
@@ -107,12 +112,10 @@ func main() {
 
 	glm.RenderCall = func() {
 
-		// Drawing for cube
+		// Rotating cube render
+		theta += 0.1
+		gl.Uniform1f(thetaLoc, float32(theta))
 		gl.DrawArrays(gl.TRIANGLE_STRIP, 0, 4)
-
-		fmt.Println("Render call")
-		//fmt.Println("VAO", glm.VAO())
-		//fmt.Println("VBO", glm.VBO())
 
 	}
 

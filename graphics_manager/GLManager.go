@@ -1,4 +1,4 @@
-package main
+package graphics_manager
 
 import (
 	"fmt"
@@ -11,15 +11,15 @@ import (
 )
 
 type GLManager struct {
-	window          *glfw.Window
-	program         uint32
-	vao             uint32
-	vbo             uint32
+	Window          *glfw.Window
+	Program         uint32
+	Vao             uint32
+	Vbo             uint32
 	vertices        []mgl32.Vec3
 	float32vertices []float32
-	fS              string
-	vS              string
-	renderCall      func()
+	FS              string
+	VS              string
+	RenderCall      func()
 }
 
 func NewWindowContext(width, height int, windowTitle string) *glfw.Window {
@@ -56,7 +56,7 @@ func (glm *GLManager) NewProgram() uint32 {
 
 	fmt.Println("OpenGL Version:", gl.GoStr(gl.GetString(gl.VERSION)))
 
-	program, err := newProgram(glm.vS, glm.fS)
+	program, err := newProgram(glm.VertexShaderSource(), glm.FragmentShaderSource())
 	if err != nil {
 		fmt.Println("Shader program creation failed:", err)
 		return 0
@@ -77,28 +77,28 @@ func (glm *GLManager) NewProgram() uint32 {
 //}
 
 func (glm *GLManager) BindProgram() {
-	if glm.Program() != 0 {
-		gl.UseProgram(glm.Program())
+	if glm.GetProgram() != 0 {
+		gl.UseProgram(glm.GetProgram())
 		fmt.Println("BindProgram called")
 	} else {
 		fmt.Println("Program value is 0")
 	}
 }
 
-func (glm *GLManager) Program() uint32 {
-	return glm.program
+func (glm *GLManager) GetProgram() uint32 {
+	return glm.Program
 }
 
-func (glm *GLManager) Window() *glfw.Window {
-	return glm.window
+func (glm *GLManager) GetWindow() *glfw.Window {
+	return glm.Window
 }
 
 func (glm *GLManager) VBO() uint32 {
-	return glm.vbo
+	return glm.Vbo
 }
 
 func (glm *GLManager) VAO() uint32 {
-	return glm.vao
+	return glm.Vao
 }
 
 func (glm *GLManager) Vertices() []mgl32.Vec3 {
@@ -110,20 +110,20 @@ func (glm *GLManager) Float32Vertices() []float32 {
 }
 
 func (glm *GLManager) FragmentShaderSource() string {
-	return glm.fS
+	return glm.FS
 }
 
 func (glm *GLManager) VertexShaderSource() string {
-	return glm.vS
+	return glm.VS
 }
 
 func (glm *GLManager) SetShaderSource(shaderSource, shaderType string) {
 
 	switch shaderType {
 	case "vertex":
-		glm.vS = shaderSource
+		glm.VS = shaderSource
 	case "fragment":
-		glm.fS = shaderSource
+		glm.FS = shaderSource
 	default:
 		fmt.Println("Unsupported shader type, please declare \"vertex\" or \"fragment\"")
 	}
@@ -146,7 +146,7 @@ func (glm *GLManager) SetFloat32Vertices() {
 }
 
 func (glm *GLManager) SetProgram() {
-	glm.program = glm.NewProgram()
+	glm.Program = glm.NewProgram()
 }
 
 func (glm *GLManager) ClearFloat32Vertices() {
@@ -154,11 +154,11 @@ func (glm *GLManager) ClearFloat32Vertices() {
 }
 
 func (glm *GLManager) BindVAO() {
-	glm.vao = makeVao(glm.vbo)
+	glm.Vao = makeVao(glm.Vbo)
 }
 
 func (glm *GLManager) BindVBO() {
-	glm.vbo = makeVbo(glm.float32vertices)
+	glm.Vbo = makeVbo(glm.float32vertices)
 }
 
 func (glm *GLManager) ConvertVec3ToFloat32() []float32 {
@@ -166,8 +166,8 @@ func (glm *GLManager) ConvertVec3ToFloat32() []float32 {
 }
 
 func (glm *GLManager) Render() {
-	if glm.renderCall != nil {
-		glm.renderCall()
+	if glm.RenderCall != nil {
+		glm.RenderCall()
 	} else {
 		fmt.Println("Render call function is nil")
 	}
@@ -277,7 +277,7 @@ func vec3ToFloat32(vec3Array []mgl32.Vec3) []float32 {
 
 func (glm *GLManager) RunLoop(fps int) {
 	t := time.Now()
-	for !glm.Window().ShouldClose() {
+	for !glm.GetWindow().ShouldClose() {
 		gl.ClearColor(1.0, 1.0, 1.0, 1.0)
 		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
@@ -290,7 +290,7 @@ func (glm *GLManager) RunLoop(fps int) {
 		}
 
 		glfw.PollEvents()
-		glm.Window().SwapBuffers()
+		glm.GetWindow().SwapBuffers()
 		time.Sleep(time.Second/time.Duration(fps) - time.Since(t))
 		t = time.Now()
 
