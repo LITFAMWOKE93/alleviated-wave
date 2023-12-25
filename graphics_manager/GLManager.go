@@ -275,6 +275,7 @@ func vec3ToFloat32(vec3Array []mgl32.Vec3) []float32 {
 	return float32Array
 }
 
+// RunLoop is where the rendering and buffering take place
 func (glm *GLManager) RunLoop(fps int) {
 	t := time.Now()
 	for !glm.GetWindow().ShouldClose() {

@@ -121,6 +121,6 @@ func main() {
 
 	gl.Enable(gl.DEPTH_TEST)
 
-	glm.RunLoop(30)
+	glm.RunLoop(60)
 
 }
