@@ -1,7 +1,6 @@
 package main
 
 import (
-	"LITFAMWOKE93/alleviated-wave/graphics_manager"
 	"fmt"
 	"runtime"
 
@@ -89,7 +88,7 @@ func main() {
 
 	// We need to link a variable in Go to the shader value uTheta
 
-	glm := graphics_manager.GLManager{
+	glm := graphicsManager.GLManager{
 		Window: window,
 		VS:     VERTEXSHADERSOURCE,
 		FS:     FRAGMENTSHADERSOURCE,

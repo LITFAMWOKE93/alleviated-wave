@@ -1,7 +1,6 @@
 package main
 
 import (
-	"LITFAMWOKE93/alleviated-wave/graphics_manager"
 	"fmt"
 	"runtime"
 
@@ -61,7 +60,7 @@ func main() {
 
 	}
 
-	glm := graphics_manager.GLManager{
+	glm := graphicsManager.GLManager{
 		Window: window,
 		VS: `
 		#version 410

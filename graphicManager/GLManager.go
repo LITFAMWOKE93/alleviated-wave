@@ -1,4 +1,4 @@
-package graphics_manager
+package graphicsManager
 
 import (
 	"fmt"
