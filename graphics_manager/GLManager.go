@@ -13,10 +13,10 @@ import (
 type GLManager struct {
 	Window          *glfw.Window
 	Program         uint32
-	Vao             uint32
-	Vbo             uint32
-	vertices        []mgl32.Vec3
-	float32vertices []float32
+	VAOs            []uint32
+	VBOs            []uint32
+	vertices        [][]mgl32.Vec3
+	float32vertices [][]float32
 	FS              string
 	VS              string
 	RenderCall      func()
@@ -93,19 +93,23 @@ func (glm *GLManager) GetWindow() *glfw.Window {
 	return glm.Window
 }
 
-func (glm *GLManager) VBO() uint32 {
-	return glm.Vbo
+// Any function with Get in front of it is redundant habbit
+// while designing. Go best practice is to only create getters for
+// struct fields that are private and thus lowercase, allowing for
+// a field named vBOs and a get method title VBOs()
+func (glm *GLManager) GetVBOs() []uint32 {
+	return glm.VBOs
 }
 
-func (glm *GLManager) VAO() uint32 {
-	return glm.Vao
+func (glm *GLManager) GetVAOs() []uint32 {
+	return glm.VAOs
 }
 
-func (glm *GLManager) Vertices() []mgl32.Vec3 {
+func (glm *GLManager) Vertices() [][]mgl32.Vec3 {
 	return glm.vertices
 }
 
-func (glm *GLManager) Float32Vertices() []float32 {
+func (glm *GLManager) Float32Vertices() [][]float32 {
 	return glm.float32vertices
 }
 
@@ -130,7 +134,7 @@ func (glm *GLManager) SetShaderSource(shaderSource, shaderType string) {
 
 }
 
-func (glm *GLManager) SetVertices(sliceVec3 []mgl32.Vec3) {
+func (glm *GLManager) SetVertices(sliceVec3 [][]mgl32.Vec3) {
 	glm.vertices = sliceVec3
 }
 
@@ -139,6 +143,7 @@ func (glm *GLManager) ClearVertices() {
 }
 
 func (glm *GLManager) SetFloat32Vertices() {
+
 	if glm.Vertices() != nil {
 		glm.float32vertices = glm.ConvertVec3ToFloat32()
 	}
@@ -153,16 +158,31 @@ func (glm *GLManager) ClearFloat32Vertices() {
 	glm.float32vertices = nil
 }
 
-func (glm *GLManager) BindVAO() {
-	glm.Vao = makeVao(glm.Vbo)
+func (glm *GLManager) BindVAOs() {
+	// Multiple Vaos
+	for _, vbo := range glm.VBOs {
+		newVao := makeVao(vbo)
+		glm.VAOs = append(glm.VAOs, newVao)
+	}
 }
 
-func (glm *GLManager) BindVBO() {
-	glm.Vbo = makeVbo(glm.float32vertices)
+// Multiple Vbos
+func (glm *GLManager) BindVBOs() {
+	for _, slice := range glm.float32vertices {
+		newVbo := makeVbo(slice)
+		glm.VBOs = append(glm.VBOs, newVbo)
+	}
+
+	glm.ClearFloat32Vertices()
 }
 
-func (glm *GLManager) ConvertVec3ToFloat32() []float32 {
-	return vec3ToFloat32(glm.vertices)
+func (glm *GLManager) ConvertVec3ToFloat32() [][]float32 {
+	var tempSlice [][]float32
+	for i := range glm.Vertices() {
+		newSlice := vec3ToFloat32(glm.vertices[i])
+		tempSlice = append(tempSlice, newSlice)
+	}
+	return tempSlice
 }
 
 func (glm *GLManager) Render() {
@@ -260,7 +280,7 @@ func makeVbo(vertices []float32) uint32 {
 	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
 	// 32 bits 4 bytes
 	gl.BufferData(gl.ARRAY_BUFFER, 4*len(vertices), gl.Ptr(vertices), gl.STATIC_DRAW)
-	gl.BindBuffer(gl.ARRAY_BUFFER, 0)
+
 	return vbo
 }
 

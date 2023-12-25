@@ -10,15 +10,54 @@ import (
 	"github.com/go-gl/mathgl/mgl32"
 )
 
+const (
+	VERTEXSHADERSOURCE = `
+	#version 410
+
+	in vec4 aPosition;
+	uniform float uTheta;
+
+
+
+	void main() {
+		mat2 rotationMatrix = mat2(cos(uTheta), -sin(uTheta), sin(uTheta), cos(uTheta));
+
+		vec2 rotatedPosition = rotationMatrix * aPosition.xy;
+
+		gl_Position = vec4(rotatedPosition, 0.0, 1.0);
+	}
+		` + "\x00"
+
+	FRAGMENTSHADERSOURCE = `
+	#version 410
+	out vec4 frag_colour;
+	void main() {
+		frag_colour = vec4(1.0, 0.0, 0.0, 1.0);
+	}
+		` + "\x00"
+)
+
 var (
-	var2DCube = []mgl32.Vec3{
+	v2DCube = []mgl32.Vec3{
 		{0.0, 1.0, 0.0},
 		{1.0, 0.0, 0.0},
 		{-1.0, 0.0, 0.0},
 		{0.0, -1.0, 0.0},
 	}
 
-	theta = 0.0
+	buttonVertices = []mgl32.Vec3{
+		{0.8, 0.8, 0.0},
+		{1.0, 0.8, 0.0},
+		{1.0, 1.0, 0.0},
+		{0.8, 1.0, 0.0},
+	}
+
+	vectorStorage = [][]mgl32.Vec3{
+		v2DCube, buttonVertices,
+	}
+
+	theta          = 0.0
+	switchRotation = false
 )
 
 func main() {
@@ -52,30 +91,10 @@ func main() {
 
 	glm := graphics_manager.GLManager{
 		Window: window,
-		VS: `
-		#version 410
-
-		in vec4 aPosition;
-		uniform float uTheta;
-
-
-
-		void main() {
-    		mat2 rotationMatrix = mat2(cos(uTheta), -sin(uTheta), sin(uTheta), cos(uTheta));
-    
-    		vec2 rotatedPosition = rotationMatrix * aPosition.xy;
-
-    		gl_Position = vec4(rotatedPosition, 0.0, 1.0);
-		}
-			` + "\x00",
-		FS: `
-		#version 410
-		out vec4 frag_colour;
-		void main() {
-			frag_colour = vec4(1.0, 0.0, 0.0, 1.0);
-		}
-			` + "\x00",
+		VS:     VERTEXSHADERSOURCE,
+		FS:     FRAGMENTSHADERSOURCE,
 	}
+	glm.Window.SetMouseButtonCallback(mouseEventListener)
 
 	// Set shader sources
 
@@ -94,7 +113,7 @@ func main() {
 	// You can send floats, scalars, vectors, matrices to uniform
 	glm.BindProgram()
 
-	glm.SetVertices(var2DCube)
+	glm.SetVertices(vectorStorage)
 	fmt.Println("Instance vec3 slice:", glm.Vertices())
 
 	glm.SetFloat32Vertices()
@@ -104,18 +123,26 @@ func main() {
 	// Multiple VBO's can be set up
 	// TODO: Create a buffer pool and pointers to the last, next, and current buffers for use
 
-	glm.BindVBO()
-	fmt.Println("Instance VBO: ", glm.VBO())
+	glm.BindVBOs()
+	fmt.Println("Instance VBO: ", glm.GetVBOs())
 
-	glm.BindVAO()
-	fmt.Println("Instance VAO: ", glm.VAO())
+	glm.BindVAOs()
+	fmt.Println("Instance VAO: ", glm.GetVAOs())
 
 	glm.RenderCall = func() {
 
 		// Rotating cube render
-		theta += 0.1
+		if !switchRotation {
+			theta += 0.1
+		} else {
+			theta -= 0.1
+		}
 		gl.Uniform1f(thetaLoc, float32(theta))
+
 		gl.DrawArrays(gl.TRIANGLE_STRIP, 0, 4)
+		// Render button
+
+		gl.DrawArrays(gl.TRIANGLE_FAN, 0, int32(len(buttonVertices)))
 
 	}
 
@@ -123,4 +150,14 @@ func main() {
 
 	glm.RunLoop(60)
 
+}
+
+func mouseEventListener(w *glfw.Window, button glfw.MouseButton, action glfw.Action, mods glfw.ModifierKey) {
+	if button == glfw.MouseButtonLeft && action == glfw.Press {
+		// Check mousePos in button area
+		x, y := w.GetCursorPos()
+		if x >= 640 && x <= 800 && y >= 480 && y <= 600 {
+			switchRotation = !switchRotation
+		}
+	}
 }
