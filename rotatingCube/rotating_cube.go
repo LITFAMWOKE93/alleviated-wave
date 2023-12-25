@@ -35,7 +35,7 @@ func main() {
 	glfw.WindowHint(glfw.OpenGLProfile, glfw.OpenGLCoreProfile)
 	glfw.WindowHint(glfw.OpenGLForwardCompatible, glfw.True)
 
-	window, err := glfw.CreateWindow(800, 600, "Test Window Instance", nil, nil)
+	window, err := glfw.CreateWindow(800, 600, "Rotating Cube", nil, nil)
 	if err != nil {
 		fmt.Println("glfw.CreateWindow() failed:", err)
 		return
