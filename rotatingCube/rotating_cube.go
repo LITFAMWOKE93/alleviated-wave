@@ -11,51 +11,104 @@ import (
 	"github.com/go-gl/mathgl/mgl32"
 )
 
+// Create faces
+// Push color information into array
+// Interpolate colors across polygon
+// Scale the cube in the vertex shader
+// Create array of 12 triangles that form 6 faces
+// use PRIMITIVE_RESTART_FIXED_INDEX to flag the end of a triangle_Fan
+// Value is 255
+// Need a fixed point, rotational angle, and vector of rotation
+// Move the object to origin, apply rotation, transform back to location
+// The transformation specified last is applied first
+// Pass as much math as you can to the GPU
+// Quaternions prevent gimbal lock
+
 const (
 	VERTEXSHADERSOURCE = `
 	#version 410
 
 	in vec4 aPosition;
-	uniform float uTheta;
+	in vec4 aColor;
+	out vec4 vColor;
+
+	uniform vec3 uTheta;
+
+	// quaternion multiplier
+
+	vec4 multq(vec4 a, vec4 b)
+	{
+		retun (vec4(a.x*b.x - dot(a.yzw, b.yzw), a.x*b.yzw+b.x*a.yzq+cross(b.yzw, a.yzw)));
+	}
+
+	// inverse quaternion
+
+	vec4 invq(vec4 a)
+	{
+		return (vec4(a.x, -a.yzw)/dot(a,a));
+	}
 
 
 
 	void main() {
-		mat2 rotationMatrix = mat2(cos(uTheta), -sin(uTheta), sin(uTheta), cos(uTheta));
+		vec3 angle = radians( uTheta );
+		vec4 r;
+		vec4 p;
+		vec4 rx, ry, rz;
+		vec3 c = cos(angles/2.0);
+		vec3 s = sin(angles/2.0);
+		rx = vec4(c.x, -s.x, 0.0, 0.0); // x rot quat
+		ry = vec4(c.y, 0.0, s.y, 0.0); // y rot quat
+		rz = vec4(c.z, 0.0, 0.0, s.z); // z rot quat
+		r = multq(rx, multq(ry, rz)); // rot quat
+		p = vec4(0.0, aPosition.xyz); // input point quat
+		p = multq(r, multq(p, invq(r))); // rotated point quat
+		gl_Position = vec4( p.yzw, 1.0); // Convert to homogenous coords
+		gl_Position.z = -gl_Position.z; // inverse/reflect
+		vColor = aColor;
 
-		vec2 rotatedPosition = rotationMatrix * aPosition.xy;
-
-		gl_Position = vec4(rotatedPosition, 0.0, 1.0);
 	}
 		` + "\x00"
 
 	FRAGMENTSHADERSOURCE = `
 	#version 410
-	out vec4 frag_colour;
+	in vec4 vColor;
+	out vec4 fColor;
 	void main() {
-		frag_colour = vec4(1.0, 0.0, 0.0, 1.0);
+		fColor = vColor;
 	}
 		` + "\x00"
 )
 
 var (
-	v2DCube = []mgl32.Vec3{
-		{0.0, 1.0, 0.0},
-		{1.0, 0.0, 0.0},
-		{-1.0, 0.0, 0.0},
-		{0.0, -1.0, 0.0},
+	numPositions int32 = 36
+
+	// Assume the vertices of a cube are available through an array
+	// Question: Why do 8 3d vertices construct 6 faces?
+	// Answer: The faces are constructed using combinations of the vertices
+
+	v3DCube = []mgl32.Vec4{
+		{-0.5, -0.5, 0.5, 1.0},
+		{-0.5, 0.5, 0.5, 1.0},
+		{0.5, 0.5, 0.5, 1.0},
+		{0.5, -0.5, 0.5, 1.0},
+		{-0.5, -0.5, -0.5, 1.0},
+		{-0.5, 0.5, -0.5, 1.0},
+		{0.5, 0.5, -0.5, 1.0},
+		{0.5, -0.5, -0.5, 1.0},
 	}
 
-	buttonVertices = []mgl32.Vec3{
-		{0.8, 0.8, 0.0},
-		{1.0, 0.8, 0.0},
-		{1.0, 1.0, 0.0},
-		{0.8, 1.0, 0.0},
+	cubeColors = []mgl32.Vec4{
+		{0.0, 0.0, 0.0, 1.0}, // black
+		{1.0, 0.0, 0.0, 1.0}, // red
+		{1.0, 1.0, 0.0, 1.0}, // yellow
+		{0.0, 1.0, 0.0, 1.0}, // green
+		{0.0, 0.0, 1.0, 1.0}, // blue
+		{1.0, 0.0, 1.0, 1.0}, // magenta
+		{0.0, 1.0, 1.0, 1.0}, // cyan
+		{1.0, 1.0, 1.0, 1.0}, // white
 	}
-
-	vectorStorage = [][]mgl32.Vec3{
-		v2DCube, buttonVertices,
-	}
+	// Outward facing, vertices traversed in counterclockwise order
 
 	theta          = 0.0
 	switchRotation = false
@@ -97,6 +150,9 @@ func main() {
 	}
 	glm.Window.SetMouseButtonCallback(mouseEventListener)
 
+	// Set clear color
+	gl.ClearColor(1.0, 1.0, 1.0, 1.0)
+
 	// Set shader sources
 
 	fmt.Println(glm.FragmentShaderSource())
@@ -114,9 +170,10 @@ func main() {
 	// You can send floats, scalars, vectors, matrices to uniform
 	glm.BindProgram()
 
-	glm.SetVertices(vectorStorage)
 	fmt.Println("Instance vec3 slice:", glm.Vertices())
 
+	glm.SetVertices(v3DCube)
+	glm.SetVertices(cubeColors)
 	glm.SetFloat32Vertices()
 	fmt.Println("Instance float32 vertices", glm.Float32Vertices())
 	// Create the buffer object that holds the positions, normals, colors and texture coordinates.
@@ -125,10 +182,7 @@ func main() {
 	// TODO: Create a buffer pool and pointers to the last, next, and current buffers for use
 
 	glm.BindVBOs()
-	fmt.Println("Instance VBO: ", glm.GetVBOs())
-
 	glm.BindVAOs()
-	fmt.Println("Instance VAO: ", glm.GetVAOs())
 
 	glm.RenderCall = func() {
 
@@ -140,10 +194,8 @@ func main() {
 		}
 		gl.Uniform1f(thetaLoc, float32(theta))
 
-		gl.DrawArrays(gl.TRIANGLE_STRIP, 0, 4)
+		gl.DrawArrays(gl.TRIANGLE_STRIP, 0, numPositions)
 		// Render button
-
-		gl.DrawArrays(gl.TRIANGLE_FAN, 0, int32(len(buttonVertices)))
 
 	}
 
@@ -161,4 +213,9 @@ func mouseEventListener(w *glfw.Window, button glfw.MouseButton, action glfw.Act
 			switchRotation = !switchRotation
 		}
 	}
+}
+
+// instead of pushing to global arrays quad hands the vertices to the manager
+func quad(a, b, c, d int) {
+
 }

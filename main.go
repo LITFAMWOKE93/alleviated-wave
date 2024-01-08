@@ -4,21 +4,22 @@ import (
 	"fmt"
 	"runtime"
 
+	"github.com/LITFAMWOKE93/alleviated-wave/graphicsManager"
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/go-gl/mathgl/mgl32"
 )
 
 var (
-	cubeVertices = []mgl32.Vec3{
-		{-0.5, -0.5, -0.5},
-		{0.5, -0.5, -0.5},
-		{0.5, 0.5, -0.5},
-		{-0.5, 0.5, -0.5},
-		{-0.5, -0.5, 0.5},
-		{0.5, -0.5, 0.5},
-		{0.5, 0.5, 0.5},
-		{-0.5, 0.5, 0.5},
+	cubeVertices = []mgl32.Vec4{
+		{-0.5, -0.5, -0.5, 1.0},
+		{0.5, -0.5, -0.5, 1.0},
+		{0.5, 0.5, -0.5, 1.0},
+		{-0.5, 0.5, -0.5, 1.0},
+		{-0.5, -0.5, 0.5, 1.0},
+		{0.5, -0.5, 0.5, 1.0},
+		{0.5, 0.5, 0.5, 1.0},
+		{-0.5, 0.5, 0.5, 1.0},
 	}
 
 	cubeIndices = []uint32{
@@ -98,11 +99,11 @@ func main() {
 	// Multiple VBO's can be set up
 	// TODO: Create a buffer pool and pointers to the last, next, and current buffers for use
 
-	glm.BindVBO()
-	fmt.Println("Instance VBO: ", glm.VBO())
+	glm.BindVBOs()
+	fmt.Println("Instance VBO: ", glm.VBOs())
 
-	glm.BindVAO()
-	fmt.Println("Instance VAO: ", glm.VAO())
+	glm.BindVAOs()
+	fmt.Println("Instance VAO: ", glm.VAOs())
 
 	glm.RenderCall = func() {
 

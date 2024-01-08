@@ -28,9 +28,9 @@ func TestGLManager_SetVertices(t *testing.T) {
 	manager := GLManager{}
 
 	// Test setting vertices
-	vertices := []mgl32.Vec3{
-		mgl32.Vec3{1.0, 2.0, 3.0},
-		mgl32.Vec3{4.0, 5.0, 6.0},
+	vertices := []mgl32.Vec4{
+		mgl32.Vec4{1.0, 2.0, 3.0, 1.0},
+		mgl32.Vec4{4.0, 5.0, 6.0, 1.0},
 	}
 
 	manager.SetVertices(vertices)
@@ -41,9 +41,9 @@ func TestGLManager_SetFloat32Vertices(t *testing.T) {
 	manager := GLManager{}
 
 	// Test setting float32 vertices after setting vertices
-	vertices := []mgl32.Vec3{
-		mgl32.Vec3{1.0, 2.0, 3.0},
-		mgl32.Vec3{4.0, 5.0, 6.0},
+	vertices := []mgl32.Vec4{
+		mgl32.Vec4{1.0, 2.0, 3.0, 1.0},
+		mgl32.Vec4{4.0, 5.0, 6.0, 1.0},
 	}
 
 	manager.SetVertices(vertices)
@@ -71,7 +71,7 @@ func TestGLManager_BindVAO(t *testing.T) {
 	manager := GLManager{}
 
 	// Test binding VAO with a non-zero VBO value
-	manager.Vbo = 456
+	manager.vbos = []uint32{456, 490}
 	manager.BindVAOs()
 	// Assert that the VAO is created and bound (not checking OpenGL state in this example)
 }
@@ -88,9 +88,9 @@ func TestGLManager_ConvertVec3ToFloat32(t *testing.T) {
 	manager := GLManager{}
 
 	// Test converting Vec3 to float32
-	vertices := []mgl32.Vec3{
-		mgl32.Vec3{1.0, 2.0, 3.0},
-		mgl32.Vec3{4.0, 5.0, 6.0},
+	vertices := []mgl32.Vec4{
+		mgl32.Vec4{1.0, 2.0, 3.0, 1.0},
+		mgl32.Vec4{4.0, 5.0, 6.0, 1.0},
 	}
 
 	manager.vertices = vertices
@@ -101,14 +101,14 @@ func TestGLManager_ConvertVec3ToFloat32(t *testing.T) {
 func TestGLManager_ClearVertices(t *testing.T) {
 	manager := GLManager{}
 
-	vertices := []mgl32.Vec3{
-		mgl32.Vec3{1.0, 2.0, 3.0},
-		mgl32.Vec3{4.0, 5.0, 6.0},
+	vertices := []mgl32.Vec4{
+		mgl32.Vec4{1.0, 2.0, 3.0, 1.0},
+		mgl32.Vec4{4.0, 5.0, 6.0, 1.0},
 	}
 
 	manager.vertices = vertices
 	result := manager.vertices
-	assert.Equal(t, []mgl32.Vec3{mgl32.Vec3{1.0, 2.0, 3.0}, mgl32.Vec3{4.0, 5.0, 6.0}}, result)
+	assert.Equal(t, []mgl32.Vec4{mgl32.Vec4{1.0, 2.0, 3.0, 1.0}, mgl32.Vec4{4.0, 5.0, 6.0, 1.0}}, result)
 
 	manager.ClearVertices()
 	assert.Empty(t, manager.vertices)
@@ -119,7 +119,7 @@ func TestGLManager_ClearFloat32Vertices(t *testing.T) {
 
 	manager := GLManager{}
 
-	vertices := []float32{1.0, 2.0, 3.0, 4.0, 5.0, 6.0}
+	vertices := [][]float32{{1.0, 2.0, 3.0, 4.0, 5.0, 6.0}, {1.0, 3.0, 3.0, 5.0, 5.0, 6.0}}
 
 	manager.float32vertices = vertices
 	result := manager.float32vertices

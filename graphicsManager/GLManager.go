@@ -13,13 +13,69 @@ import (
 type GLManager struct {
 	Window          *glfw.Window
 	Program         uint32
-	VAOs            []uint32
-	VBOs            []uint32
-	vertices        [][]mgl32.Vec3
+	vaos            []uint32
+	vbos            []uint32
+	vertices        []mgl32.Vec4
+	vertexColors    []mgl32.Vec4
+	vec4Storage     Vec4Storage
+	float32Storage  Float32Storage
 	float32vertices [][]float32
 	FS              string
 	VS              string
 	RenderCall      func()
+}
+
+type VerticeStorer interface {
+	GetAll() ([][]mgl32.Vec4, error)
+	PutSlice([]mgl32.Vec4, string) error
+	PutVal(mgl32.Vec4)
+}
+
+type Vec4Storage struct {
+	vStorage       VerticeStorer
+	objectVertices []mgl32.Vec4
+	vertexColors   []mgl32.Vec4
+}
+
+func (v4s *Vec4Storage) ClearAll() {
+	clear(v4s.objectVertices)
+	clear(v4s.vertexColors)
+}
+
+func (v4s *Vec4Storage) AddOjbVertices(slice []mgl32.Vec4) {
+	v4s.objectVertices = append(v4s.objectVertices, slice...)
+}
+
+type Float32Storage struct {
+	vStorage          VerticeStorer
+	objVecFloats      []float32
+	vertexColorFloats []float32
+}
+
+func (glm *GLManager) GetAll() (slice [][]mgl32.Vec4, err error) {
+	for _, val := range slice {
+		fmt.Printf("All slices in storage: %v", val)
+	}
+
+	return slice, nil
+}
+
+func (glm *GLManager) PutSlice(slice []mgl32.Vec4, selection string) (err error) {
+	switch selection {
+	case "object":
+		fmt.Println("Object storage appending")
+		fmt.Printf("Value: %v", slice)
+		glm.vec4Storage.objectVertices = append(glm.vec4Storage.objectVertices, slice...)
+	case "color":
+		fmt.Println("Color storage appending")
+		fmt.Printf("Value: %v", slice)
+		glm.vec4Storage.vertexColors = append(glm.vec4Storage.vertexColors, slice...)
+	default:
+		fmt.Println("Must input object or color as selection in string format")
+		return fmt.Errorf(err.Error())
+	}
+
+	return nil
 }
 
 func NewWindowContext(width, height int, windowTitle string) *glfw.Window {
@@ -97,15 +153,15 @@ func (glm *GLManager) GetWindow() *glfw.Window {
 // while designing. Go best practice is to only create getters for
 // struct fields that are private and thus lowercase, allowing for
 // a field named vBOs and a get method title VBOs()
-func (glm *GLManager) GetVBOs() []uint32 {
-	return glm.VBOs
+func (glm *GLManager) VBOs() []uint32 {
+	return glm.vbos
 }
 
-func (glm *GLManager) GetVAOs() []uint32 {
-	return glm.VAOs
+func (glm *GLManager) VAOs() []uint32 {
+	return glm.vaos
 }
 
-func (glm *GLManager) Vertices() [][]mgl32.Vec3 {
+func (glm *GLManager) Vertices() []mgl32.Vec4 {
 	return glm.vertices
 }
 
@@ -134,8 +190,8 @@ func (glm *GLManager) SetShaderSource(shaderSource, shaderType string) {
 
 }
 
-func (glm *GLManager) SetVertices(sliceVec3 [][]mgl32.Vec3) {
-	glm.vertices = sliceVec3
+func (glm *GLManager) SetVertices(sliceVec4 []mgl32.Vec4) {
+	glm.vertices = sliceVec4
 }
 
 func (glm *GLManager) ClearVertices() {
@@ -160,9 +216,9 @@ func (glm *GLManager) ClearFloat32Vertices() {
 
 func (glm *GLManager) BindVAOs() {
 	// Multiple Vaos
-	for _, vbo := range glm.VBOs {
+	for _, vbo := range glm.VBOs() {
 		newVao := makeVao(vbo)
-		glm.VAOs = append(glm.VAOs, newVao)
+		glm.vaos = append(glm.vaos, newVao)
 	}
 }
 
@@ -170,18 +226,17 @@ func (glm *GLManager) BindVAOs() {
 func (glm *GLManager) BindVBOs() {
 	for _, slice := range glm.float32vertices {
 		newVbo := makeVbo(slice)
-		glm.VBOs = append(glm.VBOs, newVbo)
+		glm.vbos = append(glm.vbos, newVbo)
 	}
 
-	glm.ClearFloat32Vertices()
 }
 
 func (glm *GLManager) ConvertVec3ToFloat32() [][]float32 {
 	var tempSlice [][]float32
-	for i := range glm.Vertices() {
-		newSlice := vec3ToFloat32(glm.vertices[i])
-		tempSlice = append(tempSlice, newSlice)
-	}
+
+	newSlice := vec4ToFloat32(glm.vertices)
+	tempSlice = append(tempSlice, newSlice)
+
 	return tempSlice
 }
 
@@ -284,12 +339,12 @@ func makeVbo(vertices []float32) uint32 {
 	return vbo
 }
 
-func vec3ToFloat32(vec3Array []mgl32.Vec3) []float32 {
+func vec4ToFloat32(vec4Array []mgl32.Vec4) []float32 {
 	// This is my version of "flatten.js" as I am working with mgl32.Vec3 structs in Go to do vector math but need them squashed into an array of float32 to feed the buffer
-	float32Array := make([]float32, 0, len(vec3Array)*3)
+	float32Array := make([]float32, 0, len(vec4Array)*4)
 
-	for _, vec := range vec3Array {
-		float32Array = append(float32Array, vec.X(), vec.Y(), vec.Z())
+	for _, vec := range vec4Array {
+		float32Array = append(float32Array, vec.X(), vec.Y(), vec.Z(), vec.W())
 	}
 
 	return float32Array
@@ -299,7 +354,7 @@ func vec3ToFloat32(vec3Array []mgl32.Vec3) []float32 {
 func (glm *GLManager) RunLoop(fps int) {
 	t := time.Now()
 	for !glm.GetWindow().ShouldClose() {
-		gl.ClearColor(1.0, 1.0, 1.0, 1.0)
+
 		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
 		//Render call
@@ -315,5 +370,20 @@ func (glm *GLManager) RunLoop(fps int) {
 		time.Sleep(time.Second/time.Duration(fps) - time.Since(t))
 		t = time.Now()
 
+	}
+}
+
+func (glm *GLManager) quad(a, b, c, d int) {
+
+	vertices := vec4ToFloat32(glm.vec4Storage.objectVertices)
+
+	vertexColors := vec4ToFloat32(glm.vec4Storage.vertexColors)
+
+	var indices = []int{a, b, c, a, c, d}
+
+	for _, val := range indices {
+		glm.float32Storage.objVecFloats = append(glm.float32Storage.objVecFloats, vertices[val])
+
+		glm.float32Storage.vertexColorFloats = append(glm.float32Storage.vertexColorFloats, vertexColors[val])
 	}
 }
