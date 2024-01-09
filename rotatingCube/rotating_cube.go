@@ -119,9 +119,7 @@ var (
 	}
 	// Outward facing, vertices traversed in counterclockwise order
 
-	theta          = []float32{0.0, 0.0, 0.0}
-	axis           = 0
-	switchRotation = false
+	theta = []float32{0.0, 0.0, 0.0}
 
 	//Event handler variables
 
@@ -249,7 +247,7 @@ func main() {
 		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
 		// Rotating cube render
-		theta[axis] += 2.0
+		updateRotation(glm.Window)
 
 		// Update the uniform
 		gl.Uniform3fv(thetaLoc, 1, &theta[0])
@@ -309,7 +307,7 @@ func Quad(a, b, c, d int, glm graphicsManager.GLManager) {
 		fmt.Println(i)
 		Positions = append(Positions, vecToFloat32(vertices[indices[i]])...)
 
-		Colors = append(Colors, vecToFloat32(vertexColors[indices[i]])...)
+		Colors = append(Colors, vecToFloat32(vertexColors[a])...)
 	}
 
 }
@@ -329,5 +327,23 @@ func mouseEventListener(window *glfw.Window, button glfw.MouseButton, action glf
 		} else if action == glfw.Release {
 			isMousePressed = false
 		}
+	}
+}
+
+func updateRotation(window *glfw.Window) {
+	if isMousePressed {
+		x, y := window.GetCursorPos()
+		deltaX := x - lastMouseX
+		deltaY := y - lastMouseY
+
+		// Update theta here based on deltaX and deltaY
+		// The sensitivity factor controls how much the rotation changes with mouse movement
+		var sensitivity float32 = 0.1
+		theta[0] += float32(deltaY) * sensitivity
+		theta[1] -= float32(deltaX) * sensitivity
+
+		// Update last mouse position
+		lastMouseX = x
+		lastMouseY = y
 	}
 }
