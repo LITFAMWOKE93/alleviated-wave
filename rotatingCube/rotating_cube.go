@@ -154,8 +154,6 @@ func main() {
 
 	}
 
-	// We need to link a variable in Go to the shader value uTheta
-
 	glm := graphicsManager.GLManager{
 		Window: window,
 		VS:     VERTEXSHADERSOURCE,
@@ -192,7 +190,7 @@ func main() {
 	glm.SetColorVertices(cubeColors)
 
 	// Create the buffer object that holds the positions, normals, colors and texture coordinates.
-	// The vbo can store this data on the GPU
+	// The SINGLE vbo can store this data on the GPU for each unique object
 	// Multiple VBO's can be set up
 	// TODO: Create a buffer pool and pointers to the last, next, and current buffers for use
 	colorCube(glm)
@@ -207,7 +205,7 @@ func main() {
 	// Bind VAO.
 	// Bind VBO.
 	// Set vertex attribute pointers.
-	// Unbind VBO (optional, but often done).
+	// Unbind VBO
 	// Unbind VAO.
 	geoVBO := makeVbo()
 	cVBO := makeVbo()
@@ -232,12 +230,6 @@ func main() {
 	gl.BindBuffer(gl.ARRAY_BUFFER, 0)
 	gl.BindVertexArray(0)
 
-	fmt.Println("Positions", Positions)
-
-	fmt.Println("Colors", Colors)
-	//glm.BindVBOs()
-	//glm.BindVAOs()
-
 	glm.RenderCall = func() {
 		if errCode := gl.GetError(); errCode != gl.NO_ERROR {
 			fmt.Println("OpenGL error before rendering:", errCode)
@@ -253,7 +245,7 @@ func main() {
 		gl.Uniform3fv(thetaLoc, 1, &theta[0])
 
 		// Bind the single VAO
-		gl.BindVertexArray(VAO) // Assuming 'vao' is your single VAO
+		gl.BindVertexArray(VAO)
 		gl.DrawArrays(gl.TRIANGLES, 0, numPositions)
 
 		if errCode := gl.GetError(); errCode != gl.NO_ERROR {
@@ -265,8 +257,6 @@ func main() {
 	glm.RunLoop(60)
 
 }
-
-// VERY BAD: Using a language built with the purpose of composition to basically couple it with inheritance
 
 func colorCube(glm graphicsManager.GLManager) {
 	Quad(1, 0, 3, 2, glm)
@@ -299,7 +289,6 @@ func Quad(a, b, c, d int, glm graphicsManager.GLManager) {
 	vertices := glm.Vec4Storage().ObjectVertices
 
 	vertexColors := glm.Vec4Storage().VertexColors
-	fmt.Println(vertexColors)
 
 	var indices = []int{a, b, c, a, c, d}
 
