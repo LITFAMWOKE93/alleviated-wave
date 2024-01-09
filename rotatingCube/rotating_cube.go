@@ -38,7 +38,7 @@ const (
 
 	vec4 multq(vec4 a, vec4 b)
 	{
-		return (vec4(a.x*b.x - dot(a.yzw, b.yzw), a.x*b.yzw+b.x*a.yzq+cross(b.yzw, a.yzw)));
+		return (vec4(a.x*b.x - dot(a.yzw, b.yzw), a.x*b.yzw+b.x*a.yzw+cross(b.yzw, a.yzw)));
 	}
 
 	// inverse quaternion
@@ -80,6 +80,12 @@ const (
 		` + "\x00"
 )
 
+const (
+	X_AXIS = 0
+	Y_AXIS = 1
+	Z_AXIS = 2
+)
+
 var (
 	numPositions int32 = 36
 
@@ -113,8 +119,14 @@ var (
 	}
 	// Outward facing, vertices traversed in counterclockwise order
 
-	theta          = 0.0
+	theta          = []float32{0.0, 0.0, 0.0}
+	axis           = 0
 	switchRotation = false
+
+	//Event handler variables
+
+	isMousePressed         bool
+	lastMouseX, lastMouseY float64
 )
 
 func main() {
@@ -155,7 +167,7 @@ func main() {
 	glm.NewVec4Storage()
 	glm.NewFloat32Storage()
 
-	//glm.Window.SetMouseButtonCallback(mouseEventListener)
+	glm.Window.SetMouseButtonCallback(mouseEventListener)
 
 	// Set clear color
 	gl.ClearColor(1.0, 1.0, 1.0, 1.0)
@@ -187,56 +199,48 @@ func main() {
 	// TODO: Create a buffer pool and pointers to the last, next, and current buffers for use
 	colorCube(glm)
 
-	// Make VBO
-	geoVBO := makeVbo(Positions)
-	cVBO := makeVbo(Colors)
-
-	gl.BindBuffer(gl.ARRAY_BUFFER, geoVBO)
-
-	fmt.Println("Positions", Positions)
-	gl.BufferData(gl.ARRAY_BUFFER, int(4*len(Positions)), gl.Ptr(&Positions[0]), gl.STATIC_DRAW)
-
 	// Find shader variable name
 	geoCname := gl.Str("aPosition" + "\x00")
 	positionLoc := gl.GetAttribLocation(glm.GetProgram(), geoCname)
-	// Make VAO
-	geoVAO := makeVao(geoVBO)
 
-	gl.BindVertexArray(geoVAO)
-	gl.EnableVertexAttribArray(uint32(positionLoc))
-
-	gl.VertexAttribPointer(uint32(positionLoc), 4, gl.FLOAT, false, 4*4, gl.Ptr(&glm.GetGeoVertices()[0]))
-
-	// Make VBO
-	// Bind VBO
-	gl.BindBuffer(gl.ARRAY_BUFFER, cVBO)
-	// Feed in 32 bytes
-	fmt.Println("Colors: ", Colors)
-	gl.BufferData(gl.ARRAY_BUFFER, int(4*len(Colors)), gl.Ptr(&Colors[0]), gl.STATIC_DRAW)
-
-	// Find shader variable name
 	colorCname := gl.Str("aColor" + "\x00")
 	colorLoc := gl.GetAttribLocation(glm.GetProgram(), colorCname)
 
-	if colorLoc == -1 {
-		fmt.Println("Failed to find attribute location for aColor")
-		return
-	}
+	// Bind VAO.
+	// Bind VBO.
+	// Set vertex attribute pointers.
+	// Unbind VBO (optional, but often done).
+	// Unbind VAO.
+	geoVBO := makeVbo()
+	cVBO := makeVbo()
+	VAO := makeVao()
 
-	// Make Vao
-	colorVAO := makeVao(cVBO)
+	// Create and bind a single VAO
+	gl.BindVertexArray(VAO)
 
-	gl.BindVertexArray(colorVAO)
+	// Setup for position data
+	gl.BindBuffer(gl.ARRAY_BUFFER, geoVBO)
+	gl.BufferData(gl.ARRAY_BUFFER, int(len(Positions)*4*4), gl.Ptr(&Positions[0]), gl.STATIC_DRAW)
+	gl.EnableVertexAttribArray(uint32(positionLoc))
+	gl.VertexAttribPointer(uint32(positionLoc), 4, gl.FLOAT, false, 0, nil)
 
-	gl.EnableVertexArrayAttrib(colorVAO, uint32(colorLoc))
+	// Setup for color data
+	gl.BindBuffer(gl.ARRAY_BUFFER, cVBO)
+	gl.BufferData(gl.ARRAY_BUFFER, int(len(Colors)*4*4), gl.Ptr(&Colors[0]), gl.STATIC_DRAW)
+	gl.EnableVertexAttribArray(uint32(colorLoc))
+	gl.VertexAttribPointer(uint32(colorLoc), 4, gl.FLOAT, false, 0, nil)
 
-	gl.VertexAttribPointer(uint32(colorLoc), 4, gl.FLOAT, false, 4*4, gl.Ptr(&glm.GetColorVertices()[0]))
+	// Unbind VBO and VAO
+	gl.BindBuffer(gl.ARRAY_BUFFER, 0)
+	gl.BindVertexArray(0)
 
+	fmt.Println("Positions", Positions)
+
+	fmt.Println("Colors", Colors)
 	//glm.BindVBOs()
 	//glm.BindVAOs()
 
 	glm.RenderCall = func() {
-
 		if errCode := gl.GetError(); errCode != gl.NO_ERROR {
 			fmt.Println("OpenGL error before rendering:", errCode)
 			return
@@ -245,31 +249,19 @@ func main() {
 		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
 		// Rotating cube render
-
-		theta += 2.0
-
-		// Convert theta to float32 and create a slice
-		thetaFloat32 := float32(theta)
-		thetaSlice := []float32{thetaFloat32, 0.0, 0.0}
+		theta[axis] += 2.0
 
 		// Update the uniform
-		gl.Uniform3fv(thetaLoc, 1, &thetaSlice[0])
-		gl.BindVertexArray(geoVAO)
+		gl.Uniform3fv(thetaLoc, 1, &theta[0])
+
+		// Bind the single VAO
+		gl.BindVertexArray(VAO) // Assuming 'vao' is your single VAO
 		gl.DrawArrays(gl.TRIANGLES, 0, numPositions)
 
 		if errCode := gl.GetError(); errCode != gl.NO_ERROR {
-			fmt.Println("OpenGL error after drawing geometry:", errCode)
+			fmt.Println("OpenGL error after drawing:", errCode)
 			return
 		}
-
-		gl.BindVertexArray(colorVAO)
-		gl.DrawArrays(gl.TRIANGLES, 0, numPositions)
-
-		if errCode := gl.GetError(); errCode != gl.NO_ERROR {
-			fmt.Println("OpenGL error after drawing colors:", errCode)
-			return
-		}
-
 	}
 
 	glm.RunLoop(60)
@@ -288,7 +280,7 @@ func colorCube(glm graphicsManager.GLManager) {
 
 }
 
-func makeVbo(vertices []float32) uint32 {
+func makeVbo() uint32 {
 
 	var vbo uint32
 	gl.GenBuffers(1, &vbo)
@@ -296,7 +288,7 @@ func makeVbo(vertices []float32) uint32 {
 	return vbo
 }
 
-func makeVao(vbo uint32) uint32 {
+func makeVao() uint32 {
 
 	var vao uint32
 	gl.GenVertexArrays(1, &vao)
@@ -306,28 +298,36 @@ func makeVao(vbo uint32) uint32 {
 
 func Quad(a, b, c, d int, glm graphicsManager.GLManager) {
 
-	vertices := vec4ToFloat32(glm.Vec4Storage().ObjectVertices)
+	vertices := glm.Vec4Storage().ObjectVertices
 
-	vertexColors := vec4ToFloat32(glm.Vec4Storage().VertexColors)
+	vertexColors := glm.Vec4Storage().VertexColors
+	fmt.Println(vertexColors)
 
 	var indices = []int{a, b, c, a, c, d}
 
-	for _, val := range indices {
+	for i := 0; i < len(indices); i++ {
+		fmt.Println(i)
+		Positions = append(Positions, vecToFloat32(vertices[indices[i]])...)
 
-		Positions = append(Positions, vertices[val])
-
-		Colors = append(Colors, vertexColors[val])
-
+		Colors = append(Colors, vecToFloat32(vertexColors[indices[i]])...)
 	}
+
 }
 
-func vec4ToFloat32(vec4Array []mgl32.Vec4) []float32 {
-	// This is my version of "flatten.js" as I am working with mgl32.Vec3 structs in Go to do vector math but need them squashed into an array of float32 to feed the buffer
-	float32Array := make([]float32, 0, len(vec4Array)*4)
+func vecToFloat32(vec mgl32.Vec4) []float32 {
+	float32Array := make([]float32, 0, 4)
 
-	for _, vec := range vec4Array {
-		float32Array = append(float32Array, vec.X(), vec.Y(), vec.Z(), vec.W())
-	}
-
+	float32Array = append(float32Array, vec.X(), vec.Y(), vec.Z(), vec.W())
 	return float32Array
+}
+
+func mouseEventListener(window *glfw.Window, button glfw.MouseButton, action glfw.Action, mods glfw.ModifierKey) {
+	if button == glfw.MouseButtonLeft {
+		if action == glfw.Press {
+			isMousePressed = true
+			lastMouseX, lastMouseY = window.GetCursorPos()
+		} else if action == glfw.Release {
+			isMousePressed = false
+		}
+	}
 }
