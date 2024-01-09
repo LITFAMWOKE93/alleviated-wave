@@ -33,7 +33,7 @@ func TestGLManager_SetVertices(t *testing.T) {
 		mgl32.Vec4{4.0, 5.0, 6.0, 1.0},
 	}
 
-	manager.SetVertices(vertices)
+	manager.SetGeoVertices(vertices)
 	assert.Equal(t, vertices, manager.Vertices())
 }
 
@@ -46,7 +46,7 @@ func TestGLManager_SetFloat32Vertices(t *testing.T) {
 		mgl32.Vec4{4.0, 5.0, 6.0, 1.0},
 	}
 
-	manager.SetVertices(vertices)
+	manager.SetGeoVertices(vertices)
 	manager.SetFloat32Vertices()
 	assert.Equal(t, []float32{1.0, 2.0, 3.0, 4.0, 5.0, 6.0}, manager.float32vertices)
 

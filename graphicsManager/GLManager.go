@@ -11,12 +11,12 @@ import (
 )
 
 type GLManager struct {
-	Window          *glfw.Window
-	Program         uint32
-	vaos            []uint32
-	vbos            []uint32
-	vertices        []mgl32.Vec4
-	vertexColors    []mgl32.Vec4
+	Window   *glfw.Window
+	Program  uint32
+	vaos     []uint32
+	vbos     []uint32
+	vertices []mgl32.Vec4
+	// VertexColors    []mgl32.Vec4
 	vec4Storage     Vec4Storage
 	float32Storage  Float32Storage
 	float32vertices [][]float32
@@ -32,24 +32,48 @@ type VerticeStorer interface {
 }
 
 type Vec4Storage struct {
-	vStorage       VerticeStorer
-	objectVertices []mgl32.Vec4
-	vertexColors   []mgl32.Vec4
+	ObjectVertices []mgl32.Vec4
+	VertexColors   []mgl32.Vec4
+}
+
+func (glm *GLManager) NewVec4Storage() Vec4Storage {
+	result := Vec4Storage{
+		ObjectVertices: []mgl32.Vec4{},
+		VertexColors:   []mgl32.Vec4{},
+	}
+
+	return result
+}
+
+func (glm *GLManager) Vec4Storage() Vec4Storage {
+	return glm.vec4Storage
 }
 
 func (v4s *Vec4Storage) ClearAll() {
-	clear(v4s.objectVertices)
-	clear(v4s.vertexColors)
+	clear(v4s.ObjectVertices)
+	clear(v4s.VertexColors)
 }
 
 func (v4s *Vec4Storage) AddOjbVertices(slice []mgl32.Vec4) {
-	v4s.objectVertices = append(v4s.objectVertices, slice...)
+	v4s.ObjectVertices = append(v4s.ObjectVertices, slice...)
 }
 
 type Float32Storage struct {
-	vStorage          VerticeStorer
-	objVecFloats      []float32
-	vertexColorFloats []float32
+	ObjVecFloats      []float32
+	VertexColorFloats []float32
+}
+
+func (glm *GLManager) Float32Storage() Float32Storage {
+	return glm.float32Storage
+}
+
+func (glm *GLManager) NewFloat32Storage() Float32Storage {
+	result := Float32Storage{
+		ObjVecFloats:      []float32{},
+		VertexColorFloats: []float32{},
+	}
+
+	return result
 }
 
 func (glm *GLManager) GetAll() (slice [][]mgl32.Vec4, err error) {
@@ -65,11 +89,11 @@ func (glm *GLManager) PutSlice(slice []mgl32.Vec4, selection string) (err error)
 	case "object":
 		fmt.Println("Object storage appending")
 		fmt.Printf("Value: %v", slice)
-		glm.vec4Storage.objectVertices = append(glm.vec4Storage.objectVertices, slice...)
+		glm.vec4Storage.ObjectVertices = append(glm.vec4Storage.ObjectVertices, slice...)
 	case "color":
 		fmt.Println("Color storage appending")
 		fmt.Printf("Value: %v", slice)
-		glm.vec4Storage.vertexColors = append(glm.vec4Storage.vertexColors, slice...)
+		glm.vec4Storage.VertexColors = append(glm.vec4Storage.VertexColors, slice...)
 	default:
 		fmt.Println("Must input object or color as selection in string format")
 		return fmt.Errorf(err.Error())
@@ -190,8 +214,22 @@ func (glm *GLManager) SetShaderSource(shaderSource, shaderType string) {
 
 }
 
-func (glm *GLManager) SetVertices(sliceVec4 []mgl32.Vec4) {
-	glm.vertices = sliceVec4
+func (glm *GLManager) SetGeoVertices(sliceVec4 []mgl32.Vec4) {
+	glm.vec4Storage.ObjectVertices = sliceVec4
+	glm.float32Storage.ObjVecFloats = vec4ToFloat32(sliceVec4)
+}
+
+func (glm *GLManager) SetColorVertices(sliceVec4 []mgl32.Vec4) {
+	glm.vec4Storage.VertexColors = sliceVec4
+	glm.float32Storage.VertexColorFloats = vec4ToFloat32(sliceVec4)
+}
+
+func (glm *GLManager) GetGeoVertices() []float32 {
+	return glm.float32Storage.ObjVecFloats
+}
+
+func (glm *GLManager) GetColorVertices() []float32 {
+	return glm.float32Storage.VertexColorFloats
 }
 
 func (glm *GLManager) ClearVertices() {
@@ -224,10 +262,11 @@ func (glm *GLManager) BindVAOs() {
 
 // Multiple Vbos
 func (glm *GLManager) BindVBOs() {
-	for _, slice := range glm.float32vertices {
-		newVbo := makeVbo(slice)
-		glm.vbos = append(glm.vbos, newVbo)
-	}
+
+	newVbo := makeVbo(glm.float32Storage.ObjVecFloats)
+	glm.vbos = append(glm.vbos, newVbo)
+	newVbo = makeVbo(glm.float32Storage.VertexColorFloats)
+	glm.vbos = append(glm.vbos, newVbo)
 
 }
 
@@ -316,13 +355,6 @@ func makeVao(vbo uint32) uint32 {
 
 	var vao uint32
 	gl.GenVertexArrays(1, &vao)
-	// I was generating an empty buffer here, 5 hours to find.
-
-	gl.BindVertexArray(vao)
-	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
-
-	gl.VertexAttribPointerWithOffset(0, 3, gl.FLOAT, false, 0, 0)
-	gl.EnableVertexAttribArray(0)
 
 	return vao
 }
@@ -332,9 +364,6 @@ func makeVbo(vertices []float32) uint32 {
 	// The first binding of the buffer when called at initialization
 	var vbo uint32
 	gl.GenBuffers(1, &vbo)
-	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
-	// 32 bits 4 bytes
-	gl.BufferData(gl.ARRAY_BUFFER, 4*len(vertices), gl.Ptr(vertices), gl.STATIC_DRAW)
 
 	return vbo
 }
@@ -355,35 +384,16 @@ func (glm *GLManager) RunLoop(fps int) {
 	t := time.Now()
 	for !glm.GetWindow().ShouldClose() {
 
-		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
-
 		//Render call
 		glm.Render()
 
 		//Check for errors after each call
-		for errCode := gl.GetError(); errCode != gl.NO_ERROR; errCode = gl.GetError() {
-			fmt.Println("OpenGL error: ", errCode)
-		}
 
 		glfw.PollEvents()
 		glm.GetWindow().SwapBuffers()
+
 		time.Sleep(time.Second/time.Duration(fps) - time.Since(t))
 		t = time.Now()
 
-	}
-}
-
-func (glm *GLManager) quad(a, b, c, d int) {
-
-	vertices := vec4ToFloat32(glm.vec4Storage.objectVertices)
-
-	vertexColors := vec4ToFloat32(glm.vec4Storage.vertexColors)
-
-	var indices = []int{a, b, c, a, c, d}
-
-	for _, val := range indices {
-		glm.float32Storage.objVecFloats = append(glm.float32Storage.objVecFloats, vertices[val])
-
-		glm.float32Storage.vertexColorFloats = append(glm.float32Storage.vertexColorFloats, vertexColors[val])
 	}
 }

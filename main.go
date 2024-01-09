@@ -89,7 +89,7 @@ func main() {
 	glm.SetProgram()
 	glm.BindProgram()
 
-	glm.SetVertices(cubeVertices)
+	glm.SetGeoVertices(cubeVertices)
 	fmt.Println("Instance vec3 slice:", glm.Vertices())
 
 	glm.SetFloat32Vertices()

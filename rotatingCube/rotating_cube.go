@@ -38,7 +38,7 @@ const (
 
 	vec4 multq(vec4 a, vec4 b)
 	{
-		retun (vec4(a.x*b.x - dot(a.yzw, b.yzw), a.x*b.yzw+b.x*a.yzq+cross(b.yzw, a.yzw)));
+		return (vec4(a.x*b.x - dot(a.yzw, b.yzw), a.x*b.yzw+b.x*a.yzq+cross(b.yzw, a.yzw)));
 	}
 
 	// inverse quaternion
@@ -51,7 +51,7 @@ const (
 
 
 	void main() {
-		vec3 angle = radians( uTheta );
+		vec3 angles = radians( uTheta );
 		vec4 r;
 		vec4 p;
 		vec4 rx, ry, rz;
@@ -82,6 +82,9 @@ const (
 
 var (
 	numPositions int32 = 36
+
+	Positions []float32
+	Colors    []float32
 
 	// Assume the vertices of a cube are available through an array
 	// Question: Why do 8 3d vertices construct 6 faces?
@@ -148,15 +151,20 @@ func main() {
 		VS:     VERTEXSHADERSOURCE,
 		FS:     FRAGMENTSHADERSOURCE,
 	}
-	glm.Window.SetMouseButtonCallback(mouseEventListener)
+
+	glm.NewVec4Storage()
+	glm.NewFloat32Storage()
+
+	//glm.Window.SetMouseButtonCallback(mouseEventListener)
 
 	// Set clear color
 	gl.ClearColor(1.0, 1.0, 1.0, 1.0)
-
-	// Set shader sources
-
-	fmt.Println(glm.FragmentShaderSource())
-	fmt.Println(glm.VertexShaderSource())
+	gl.Enable(gl.DEPTH_TEST)
+	gl.Viewport(0, 0, 800, 600)
+	if errCode := gl.GetError(); errCode != gl.NO_ERROR {
+		fmt.Println("OpenGL error after drawing colors:", errCode)
+		return
+	}
 
 	// Once the shader sources are configured we can create a program
 
@@ -170,52 +178,156 @@ func main() {
 	// You can send floats, scalars, vectors, matrices to uniform
 	glm.BindProgram()
 
-	fmt.Println("Instance vec3 slice:", glm.Vertices())
+	glm.SetGeoVertices(v3DCube)
+	glm.SetColorVertices(cubeColors)
 
-	glm.SetVertices(v3DCube)
-	glm.SetVertices(cubeColors)
-	glm.SetFloat32Vertices()
-	fmt.Println("Instance float32 vertices", glm.Float32Vertices())
 	// Create the buffer object that holds the positions, normals, colors and texture coordinates.
 	// The vbo can store this data on the GPU
 	// Multiple VBO's can be set up
 	// TODO: Create a buffer pool and pointers to the last, next, and current buffers for use
+	colorCube(glm)
 
-	glm.BindVBOs()
-	glm.BindVAOs()
+	// Make VBO
+	geoVBO := makeVbo(Positions)
+	cVBO := makeVbo(Colors)
+
+	gl.BindBuffer(gl.ARRAY_BUFFER, geoVBO)
+
+	fmt.Println("Positions", Positions)
+	gl.BufferData(gl.ARRAY_BUFFER, int(4*len(Positions)), gl.Ptr(&Positions[0]), gl.STATIC_DRAW)
+
+	// Find shader variable name
+	geoCname := gl.Str("aPosition" + "\x00")
+	positionLoc := gl.GetAttribLocation(glm.GetProgram(), geoCname)
+	// Make VAO
+	geoVAO := makeVao(geoVBO)
+
+	gl.BindVertexArray(geoVAO)
+	gl.EnableVertexAttribArray(uint32(positionLoc))
+
+	gl.VertexAttribPointer(uint32(positionLoc), 4, gl.FLOAT, false, 4*4, gl.Ptr(&glm.GetGeoVertices()[0]))
+
+	// Make VBO
+	// Bind VBO
+	gl.BindBuffer(gl.ARRAY_BUFFER, cVBO)
+	// Feed in 32 bytes
+	fmt.Println("Colors: ", Colors)
+	gl.BufferData(gl.ARRAY_BUFFER, int(4*len(Colors)), gl.Ptr(&Colors[0]), gl.STATIC_DRAW)
+
+	// Find shader variable name
+	colorCname := gl.Str("aColor" + "\x00")
+	colorLoc := gl.GetAttribLocation(glm.GetProgram(), colorCname)
+
+	if colorLoc == -1 {
+		fmt.Println("Failed to find attribute location for aColor")
+		return
+	}
+
+	// Make Vao
+	colorVAO := makeVao(cVBO)
+
+	gl.BindVertexArray(colorVAO)
+
+	gl.EnableVertexArrayAttrib(colorVAO, uint32(colorLoc))
+
+	gl.VertexAttribPointer(uint32(colorLoc), 4, gl.FLOAT, false, 4*4, gl.Ptr(&glm.GetColorVertices()[0]))
+
+	//glm.BindVBOs()
+	//glm.BindVAOs()
 
 	glm.RenderCall = func() {
 
-		// Rotating cube render
-		if !switchRotation {
-			theta += 0.1
-		} else {
-			theta -= 0.1
+		if errCode := gl.GetError(); errCode != gl.NO_ERROR {
+			fmt.Println("OpenGL error before rendering:", errCode)
+			return
 		}
-		gl.Uniform1f(thetaLoc, float32(theta))
 
-		gl.DrawArrays(gl.TRIANGLE_STRIP, 0, numPositions)
-		// Render button
+		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+
+		// Rotating cube render
+
+		theta += 2.0
+
+		// Convert theta to float32 and create a slice
+		thetaFloat32 := float32(theta)
+		thetaSlice := []float32{thetaFloat32, 0.0, 0.0}
+
+		// Update the uniform
+		gl.Uniform3fv(thetaLoc, 1, &thetaSlice[0])
+		gl.BindVertexArray(geoVAO)
+		gl.DrawArrays(gl.TRIANGLES, 0, numPositions)
+
+		if errCode := gl.GetError(); errCode != gl.NO_ERROR {
+			fmt.Println("OpenGL error after drawing geometry:", errCode)
+			return
+		}
+
+		gl.BindVertexArray(colorVAO)
+		gl.DrawArrays(gl.TRIANGLES, 0, numPositions)
+
+		if errCode := gl.GetError(); errCode != gl.NO_ERROR {
+			fmt.Println("OpenGL error after drawing colors:", errCode)
+			return
+		}
 
 	}
-
-	gl.Enable(gl.DEPTH_TEST)
 
 	glm.RunLoop(60)
 
 }
 
-func mouseEventListener(w *glfw.Window, button glfw.MouseButton, action glfw.Action, mods glfw.ModifierKey) {
-	if button == glfw.MouseButtonLeft && action == glfw.Press {
-		// Check mousePos in button area
-		x, y := w.GetCursorPos()
-		if x >= 640 && x <= 800 && y >= 480 && y <= 600 {
-			switchRotation = !switchRotation
-		}
+// VERY BAD: Using a language built with the purpose of composition to basically couple it with inheritance
+
+func colorCube(glm graphicsManager.GLManager) {
+	Quad(1, 0, 3, 2, glm)
+	Quad(2, 3, 7, 6, glm)
+	Quad(3, 0, 4, 7, glm)
+	Quad(6, 5, 1, 2, glm)
+	Quad(4, 5, 6, 7, glm)
+	Quad(5, 4, 0, 1, glm)
+
+}
+
+func makeVbo(vertices []float32) uint32 {
+
+	var vbo uint32
+	gl.GenBuffers(1, &vbo)
+
+	return vbo
+}
+
+func makeVao(vbo uint32) uint32 {
+
+	var vao uint32
+	gl.GenVertexArrays(1, &vao)
+
+	return vao
+}
+
+func Quad(a, b, c, d int, glm graphicsManager.GLManager) {
+
+	vertices := vec4ToFloat32(glm.Vec4Storage().ObjectVertices)
+
+	vertexColors := vec4ToFloat32(glm.Vec4Storage().VertexColors)
+
+	var indices = []int{a, b, c, a, c, d}
+
+	for _, val := range indices {
+
+		Positions = append(Positions, vertices[val])
+
+		Colors = append(Colors, vertexColors[val])
+
 	}
 }
 
-// instead of pushing to global arrays quad hands the vertices to the manager
-func quad(a, b, c, d int) {
+func vec4ToFloat32(vec4Array []mgl32.Vec4) []float32 {
+	// This is my version of "flatten.js" as I am working with mgl32.Vec3 structs in Go to do vector math but need them squashed into an array of float32 to feed the buffer
+	float32Array := make([]float32, 0, len(vec4Array)*4)
 
+	for _, vec := range vec4Array {
+		float32Array = append(float32Array, vec.X(), vec.Y(), vec.Z(), vec.W())
+	}
+
+	return float32Array
 }

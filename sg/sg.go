@@ -1,5 +1,5 @@
 // Switch package to main to run
-package sg
+package main
 
 import (
 	"fmt"
