@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"runtime"
 
 	"github.com/LITFAMWOKE93/alleviated-wave/graphicsManager"
@@ -48,6 +49,9 @@ const (
 		return (vec4(a.x, -a.yzw)/dot(a,a));
 	}
 
+	uniform mat4 uModelViewMatrix;
+	uniform mat4 uProjectionMatrix;
+
 
 
 	void main() {
@@ -63,9 +67,11 @@ const (
 		r = multq(rx, multq(ry, rz)); // rot quat
 		p = vec4(0.0, aPosition.xyz); // input point quat
 		p = multq(r, multq(p, invq(r))); // rotated point quat
-		gl_Position = vec4( p.yzw, 1.0); // Convert to homogenous coords
-		gl_Position.z = -gl_Position.z; // inverse/reflect
+		vec4 utransformedPosition = vec4(p.yzw, 1.0); // Convert to homogeneous coordinates
+		
 		vColor = aColor;
+		gl_Position = uProjectionMatrix * uModelViewMatrix * aPosition;
+		gl_Position.z = -gl_Position.z; // inverse/reflect
 
 	}
 		` + "\x00"
@@ -89,6 +95,8 @@ const (
 var (
 	numPositions int32 = 36
 
+	at        = mgl32.Vec4{0.0, 0.0, 0.0, 0.0}
+	up        = mgl32.Vec4{0.0, 1.0, 0.0, 0.0}
 	Positions []float32
 	Colors    []float32
 
@@ -119,7 +127,17 @@ var (
 	}
 	// Outward facing, vertices traversed in counterclockwise order
 
-	theta = []float32{0.0, 0.0, 0.0}
+	theta  = []float32{0.0, 0.0, 0.0}
+	near   = float32(-1)
+	far    = float32(1)
+	radius = float32(1)
+
+	phi = 0.0
+
+	left   = float32(-1.0)
+	right  = float32(1.0)
+	bottom = float32(-1.0)
+	top    = float32(1.0)
 
 	//Event handler variables
 
@@ -202,6 +220,11 @@ func main() {
 	colorCname := gl.Str("aColor" + "\x00")
 	colorLoc := gl.GetAttribLocation(glm.GetProgram(), colorCname)
 
+	modelViewCname := gl.Str("uModelViewMatrix" + "\x00")
+	modelViewMatLoc := gl.GetUniformLocation(glm.GetProgram(), modelViewCname)
+
+	projMatCname := gl.Str("uProjectionMatrix" + "\x00")
+	projMatLoc := gl.GetUniformLocation(glm.GetProgram(), projMatCname)
 	// Bind VAO.
 	// Bind VBO.
 	// Set vertex attribute pointers.
@@ -229,7 +252,6 @@ func main() {
 	// Unbind VBO and VAO
 	gl.BindBuffer(gl.ARRAY_BUFFER, 0)
 	gl.BindVertexArray(0)
-
 	glm.RenderCall = func() {
 		if errCode := gl.GetError(); errCode != gl.NO_ERROR {
 			fmt.Println("OpenGL error before rendering:", errCode)
@@ -237,7 +259,18 @@ func main() {
 		}
 
 		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+		// Create polar coordinates for the eye, when looking at the origin of object coordinates
+		eye := mgl32.Vec4{radius * float32(math.Sin(float64(theta[0]))) * float32(math.Cos(float64(phi))),
+			radius * float32(math.Sin(float64(theta[0]))) * float32(math.Sin(float64(phi))),
+			radius * float32(math.Cos(float64(theta[0]))), 1.0}
+		// Create the model view matrix using the u v n properties, looking at the origin
+		modelViewMatrix := mgl32.LookAt(eye.X(), eye.Y(), eye.Z(), at.X(), at.Y(), at.Z(), up.X(), up.Y(), up.Z())
 
+		gl.UniformMatrix4fv(modelViewMatLoc, 1, false, &modelViewMatrix[0])
+		// An orthographic projection
+		projectionMatrix := ortho(left, right, bottom, top, near, far)
+		// Give the information to the Shader
+		gl.UniformMatrix4fv(projMatLoc, 1, false, &projectionMatrix[0])
 		// Rotating cube render
 		updateRotation(glm.Window)
 
@@ -335,4 +368,35 @@ func updateRotation(window *glfw.Window) {
 		lastMouseX = x
 		lastMouseY = y
 	}
+}
+
+// Performs the scalar transformation
+func ortho(left, right, bottom, top, near, far float32) mgl32.Mat4 {
+
+	switch {
+	case left == right:
+		fmt.Println(" Ortho(): Left and right are equal")
+	case bottom == top:
+		fmt.Println(" Ortho(): bottom and top are equal")
+	case near == far:
+		fmt.Println(" Ortho(): Near and far are equal")
+	}
+
+	width := right - left
+	height := top - bottom
+	depth := far - near
+
+	result := mgl32.Mat4{}
+	result.Set(0, 0, (2.0 / width))
+	result.Set(1, 1, (2.0 / height))
+	result.Set(2, 2, (2.0 / depth))
+
+	result.Set(0, 3, -(left+right)/width)
+	result.Set(1, 3, -(top+bottom)/height)
+	result.Set(2, 3, -(near+far)/depth)
+
+	result.Set(3, 3, 1.0)
+
+	return result
+
 }
