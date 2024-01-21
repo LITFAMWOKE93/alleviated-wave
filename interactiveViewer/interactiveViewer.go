@@ -6,6 +6,9 @@ import (
 	"runtime"
 
 	"github.com/LITFAMWOKE93/alleviated-wave/graphicsManager"
+	"github.com/aarzilli/nucular"
+	"github.com/aarzilli/nucular/label"
+	"github.com/aarzilli/nucular/style"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
@@ -127,10 +130,11 @@ var (
 	}
 	// Outward facing, vertices traversed in counterclockwise order
 
-	theta  = []float32{0.0, 0.0, 0.0}
+	theta  = []float64{0.0, 0.0, 0.0}
 	near   = float32(-1)
 	far    = float32(1)
 	radius = float32(1)
+	depth  = near - far
 
 	phi = 0.0
 
@@ -178,11 +182,14 @@ func main() {
 		FS:     FRAGMENTSHADERSOURCE,
 	}
 
+	go func() {
+		runNucularGUI()
+	}()
+
 	glm.NewVec4Storage()
 	glm.NewFloat32Storage()
 
 	glm.Window.SetMouseButtonCallback(mouseEventListener)
-
 	// Set clear color
 	gl.ClearColor(1.0, 1.0, 1.0, 1.0)
 	gl.Enable(gl.DEPTH_TEST)
@@ -274,8 +281,10 @@ func main() {
 		// Rotating cube render
 		updateRotation(glm.Window)
 
+		var t []float32
+		t = append(t, float32(theta[0]))
 		// Update the uniform
-		gl.Uniform3fv(thetaLoc, 1, &theta[0])
+		gl.Uniform3fv(thetaLoc, 1, &t[0])
 
 		// Bind the single VAO
 		gl.BindVertexArray(VAO)
@@ -288,6 +297,27 @@ func main() {
 	}
 
 	glm.RunLoop(60)
+
+}
+
+func updatefn(w *nucular.Window) {
+	// Find a better place to handle conversions later
+	// During data passage in channels
+
+	radius64 := float64(radius)
+	depth64 := float64(depth)
+	w.Row(50).Dynamic(4)
+
+	w.Commands()
+	w.Label("Phi", label.Align("LT"))
+	w.Label("Theta", label.Align("LT"))
+	w.Label("Depth", label.Align("LT"))
+	w.Label("Radius", label.Align("LT"))
+	w.SliderFloat(-90, &phi, 90, 5)
+
+	w.SliderFloat(-90, &theta[0], 90, 5)
+	w.SliderFloat(0.05, &depth64, 3, 0.1)
+	w.SliderFloat(0.05, &radius64, 2.0, 0.1)
 
 }
 
@@ -350,6 +380,7 @@ func mouseEventListener(window *glfw.Window, button glfw.MouseButton, action glf
 			isMousePressed = false
 		}
 	}
+
 }
 
 func updateRotation(window *glfw.Window) {
@@ -360,9 +391,9 @@ func updateRotation(window *glfw.Window) {
 
 		// Update theta here based on deltaX and deltaY
 		// The sensitivity factor controls how much the rotation changes with mouse movement
-		var sensitivity float32 = 0.1
-		theta[0] += float32(deltaY) * sensitivity
-		theta[1] -= float32(deltaX) * sensitivity
+		var sensitivity float64 = 0.1
+		theta[0] += deltaY * sensitivity
+		theta[1] -= deltaX * sensitivity
 
 		// Update last mouse position
 		lastMouseX = x
@@ -398,5 +429,15 @@ func ortho(left, right, bottom, top, near, far float32) mgl32.Mat4 {
 	result.Set(3, 3, 1.0)
 
 	return result
+
+}
+
+func runNucularGUI() {
+
+	wnd := nucular.NewMasterWindow(0, "OpenGL GUI", updatefn)
+
+	wnd.SetStyle(style.FromTheme(style.DarkTheme, 2.0))
+
+	wnd.Main()
 
 }
