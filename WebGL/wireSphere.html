@@ -5,6 +5,7 @@
     <script type="text/javascript" src="../WebGL/wireSphere.js"></script>
 
 <script id="vertex-shader" type="x-shader/x-vertex">
+#version 300 es
 in vec4 aPosition;
 
 uniform mat4 uModelViewMatrix;
@@ -19,6 +20,7 @@ main()
 </script>
 
 <script id="fragment-shader" type="x-shader/x-fragment">
+#version 300 es
 precision mediump float;
 
 out vec4 fColor;
