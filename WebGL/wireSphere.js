@@ -4,7 +4,7 @@ var wireSphere = function() {
     var canvas;
     var gl;
 
-    var numTimesDivide = 6;
+    var numTimesDivide = 3;
 
     var index = 0;
 
@@ -113,7 +113,7 @@ var wireSphere = function() {
         document.getElementById("Button3").onclick = function(){phi -= dr;};
         // Event listeners for division call
         document.getElementById("Button4").onclick = function(){
-            numTimesToSubdivide++;
+            numTimesDivide++;
             index = 0;
             positionsArray = [];
             init();
