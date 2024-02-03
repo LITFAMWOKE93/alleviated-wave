@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Hidden Surface Removal using Depth Sort</title>
+    
+</head>
+
+
+<script id="vertex-shader" type="x-shader/x-vertex">
+    #version 300 es
+    
+    in  vec4 aPosition;
+    in  vec4 aColor;
+    out lowp vec4 vColor;
+    
+    
+    
+    void main()
+    {
+        gl_Position = aPosition;
+        vColor = aColor;
+    }
+</script>
+    
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+        #version 300 es
+        
+        precision lowp float;
+        
+        in vec4 vColor;
+        out vec4 fColor;
+        
+        void
+        main()
+        {
+            fColor = vColor;
+        }
+</script>
+        
+
+
+<body>
+<canvas id="gl-canvas" width="512" height="512">
+    Canvas broken, browser may not support WebGL.
+</canvas>
+<script type="text/javascript" src="../WebGL/initShaders.js"></script>
+<script trype="text/javascript" src="../WebGL/MVnew.js"></script>
+<script type="text/javascript" src="paintersAlgo.js"></script>
+</body>
+
+</html>
