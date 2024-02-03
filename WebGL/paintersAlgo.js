@@ -3,14 +3,14 @@ import { mat4 } from '../matrix-gl/gl-matrix/dist/esm/index.js';
 
 /// grab the canvas
 
-const sortedPolygons = [];
+
 
 document.addEventListener('DOMContentLoaded', ()=> {
     const canvas = document.getElementById("gl-canvas");
     // Set canvas size to browser client size
     canvas.width = canvas.clientWidth;
     canvas.height = canvas.clientHeight;
-
+    
 
     let triangles = [
         {  // the Z coordinate determintes the depth
@@ -28,20 +28,20 @@ document.addEventListener('DOMContentLoaded', ()=> {
         },
         { 
             positions: [
-                -0.25, -0.25, -0.25,
-                0.25, -0.25, -0.25,
-                0.0,  0.25, -0.25,
-            ],
+                0.0, -0.5, -0.5,
+                1.0, -0.5, -0.5,
+                0.5,  0.5, -0.5,
+           ],
             colors: [
                 1.0, 1.0, 0.0, 1.0,    // Yellow
                 1.0, 1.0, 0.0, 1.0,
                 1.0, 1.0, 0.0, 1.0,
             ],
-            depth: -0.49,
+            depth: -0.25,
         }
     ];
 
-    
+ 
 
 // Set context, handle error
 const gl = canvas.getContext("webgl2");
@@ -60,12 +60,10 @@ const shaderProgram = initShaders(gl, "vertex-shader", "fragment-shader");
         },
     };
 
+    let triangleBuffers = triangles.map(triangle => initBuffers(gl, triangle));
+    
     // Priming draw call
-    triangles.forEach((triangle, index) => {
-        const buffers = initBuffers(gl, triangle);
-        render(gl, programInfo, buffers, index);
-    })
-
+    initDraw();
     // Painters algo pseudocode
     // sort polygons by their depth values
     // for each polygon:
@@ -104,67 +102,94 @@ function initBuffers(gl, data) {
 function updateTriangleDepth(index, newDepth) {
     triangles[index].depth = newDepth;
 
+   
     // this changes the z value for the vertices
     // Stride over the vertice array by threes, we are only walking on the z value
-    for (let i = 2; i < triangles[index].positions.length; i += 3) {
+   for (let i = 2; i < triangles[index].positions.length; i += 3) {
         // set z value to the new depth value
         triangles[index].positions[i] = newDepth;
-    }
+   }
 
-    initDraw(index);
+   
+
+
+   
 
 }
 
 function render(gl, programInfo, buffers) {
-    gl.clearColor(0.0, 0.0, 0.0, 1.0); // Clear to black, fully opaque
-    gl.clearDepth(1.0);                 // Clear everything
-    gl.enable(gl.DEPTH_TEST);           // Enable depth testing
-    gl.depthFunc(gl.LEQUAL);            // Near things obscure far things
 
-    // Clear the canvas before we start drawing on it.
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    
-
-    // Bind the position buffer.
+    // Bind the position buffer and set vertex attributes
     gl.bindBuffer(gl.ARRAY_BUFFER, buffers.position);
     gl.vertexAttribPointer(programInfo.attribLocations.vertexPosition, 3, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
 
-    // Bind the color buffer.
+    // Bind the color buffer and set color attributes
     gl.bindBuffer(gl.ARRAY_BUFFER, buffers.color);
     gl.vertexAttribPointer(programInfo.attribLocations.vertexColor, 4, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(programInfo.attribLocations.vertexColor);
 
+    // Use the shader program
+    gl.useProgram(programInfo.program);
+
     // Draw the object
-    gl.useProgram(programInfo.program)
     gl.drawArrays(gl.TRIANGLES, 0, buffers.vertexCount);
-    
 }
+
+
 
 
 function initDraw() {
 
-    // Depth sort which is the manual algorithm
-    triangles.sort((a,b) => a.depth -b.depth)
-
+    gl.clearColor(0.0, 0.0, 0.0, 1.0); // Clear to black, fully opaque
+    gl.clearDepth(1.0);                // Clear everything
+    gl.enable(gl.DEPTH_TEST);          // Enable depth testing
+    gl.depthFunc(gl.LEQUAL);           // Near things obscure far things
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    triangles.forEach((triangle) => {
-        const buffers = initBuffers(gl, triangle);
-        render(gl, programInfo, buffers);
-    })
+
+    // Depth sort before drawing
+    triangles.sort((a,b) => a.depth - b.depth)
+    
+    // This 
+    triangleBuffers = triangles.map(triangle => initBuffers(gl, triangle));
+
+    triangleBuffers.forEach((buffers, index) => {
+        render(gl, programInfo, buffers, index); 
+    });
+
+    updateInfo();
 }
 
 // Event handling
 
-document.getElementById("triangle1Depth").addEventListener('input', (event) => {
+document.getElementById("triangle0Depth").addEventListener('input', (event) => {
     updateTriangleDepth(0, parseFloat(event.target.value));
+
+    initDraw();
 });
 
-document.getElementById("triangle2Depth").addEventListener('input', (event) => {
+document.getElementById("triangle1Depth").addEventListener('input', (event) => {
     updateTriangleDepth(1, parseFloat(event.target.value));
+
+    initDraw();
 });
 
 
+
+
+function updateInfo() {
+    const infoContainer = document.getElementById('triangleInfo');
+    // Clear previous content
+    infoContainer.innerHTML = '';
+
+    // Append new content based on the current state
+    triangles.forEach((triangle, index) => {
+        const info = document.createElement('p');
+        // Use template literals for dynamic values
+        info.textContent = `Triangle ${index}: Depth = ${triangle.depth}`;
+        infoContainer.appendChild(info); // Corrected from info.Container to infoContainer
+    });
+}
 });
 

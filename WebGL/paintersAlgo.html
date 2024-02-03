@@ -42,12 +42,16 @@
         }
 </script>
 
+<div id="triangleInfo"></div>
+<div>
+    Triangle 0 Depth: <input type="range" id="triangle0Depth" min="-1" max="1" step="0.01" value="-0.5">
+</div>
+
 <div>
     Triangle 1 Depth: <input type="range" id="triangle1Depth" min="-1" max="1" step="0.01" value="-0.5">
 </div>
-<div>
-    Triangle 2 Depth: <input type="range" id="triangle2Depth" min="-1" max="1" step="0.01" value="-0.49">
-</div>
+
+
 <body>
 <canvas id="gl-canvas" width="512" height="512">
     Canvas broken, browser may not support WebGL.
